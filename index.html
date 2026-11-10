@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111113">
-  <meta name="description" content="WoiseX100 is an interactive voice and text interview built for the 100x AI Agent assessment.">
-  <title>WoiseX100 — The voice interview</title>
+  <meta name="description" content="A voice agent built for 100x. Ask about my work and how I think, using voice or text.">
+  <title>WoiseX100 — A voice agent for 100x</title>
   <link rel="icon" href="/woisex100-logo.png" type="image/png">
   <link rel="stylesheet" href="/src/styles.css">
   <script type="module" src="/src/app.js"></script>
@@ -33,36 +33,35 @@
   </div>
 
   <div class="page-surface">
-    <a class="skip-link" href="#interview">Skip to interview</a>
+    <a class="skip-link" href="#interview">Skip to conversation</a>
     <header class="topbar">
       <div class="header-left">
         <button type="button" class="icon-button mobile-menu" id="menu" aria-label="Open sidebar" aria-controls="sidebar" aria-expanded="false"><svg class="icon"><use href="#i-menu"/></svg></button>
         <a class="brand" href="/" aria-label="WoiseX100 home">
           <span class="brand-icon"><img src="/woisex100-logo.png" alt="" width="1536" height="1024"></span>
-          <span><strong>Woise<span>X100</span></strong><small>THE VOICE INTERVIEW</small></span>
+          <span><strong>Woise<span>X100</span></strong><small>A voice agent for 100x</small></span>
         </a>
       </div>
       <div class="header-right">
-        <span class="preview-badge"><span class="status-dot"></span>Interactive preview</span>
+        <span class="preview-badge"><span class="status-dot"></span>Preview</span>
         <a class="header-link" href="https://github.com/dumpydon/WoiseX100" target="_blank" rel="noopener noreferrer">Source <svg class="icon"><use href="#i-up-right"/></svg></a>
       </div>
     </header>
 
     <div class="layout">
       <button type="button" id="scrim" class="scrim" tabindex="-1" aria-hidden="true" hidden></button>
-      <aside id="sidebar" class="sidebar" aria-label="Interview controls">
+      <aside id="sidebar" class="sidebar" aria-label="Conversation controls">
         <div class="sidebar-head">
-          <span class="eyebrow"><span class="side-index">01</span> INTERVIEW</span>
+          <span class="eyebrow">Conversation</span>
           <button type="button" class="icon-button close-sidebar" id="close-sidebar" aria-label="Close sidebar"><svg class="icon"><use href="#i-close"/></svg></button>
         </div>
         <button type="button" class="new-button" id="new-conversation"><svg class="icon"><use href="#i-plus"/></svg>New conversation</button>
         <section class="prompt-section" aria-labelledby="prompt-title">
-          <h2 class="eyebrow" id="prompt-title">SAMPLE QUESTIONS</h2>
+          <h2 class="eyebrow" id="prompt-title">Sample questions</h2>
           <div id="side-prompts" class="prompt-list"></div>
-          <p>Try one of the assessment questions, or ask your own.</p>
         </section>
         <div class="sidebar-bottom">
-          <label class="eyebrow" for="sidebar-voice">VOICE TONE</label>
+          <label class="eyebrow" for="sidebar-voice">Voice tone</label>
           <div class="select-wrap">
             <svg class="icon tone-icon"><use href="#i-wave"/></svg>
             <select id="sidebar-voice" data-voice-select>
@@ -81,13 +80,12 @@
         </div>
         <div class="work-area">
           <section class="welcome" aria-labelledby="headline">
-            <div class="hero-label"><span class="signal-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span> 100X ASSESSMENT <span class="hero-label-divider"></span> STAGE 01</div>
-            <h1 id="headline">An AI voice agent<br>that <span id="headline-accent" aria-hidden="true">tells my story.</span><span class="sr-only">tells my story.</span></h1>
-            <p>Get to know me through voice or text. Start with an interview question and see where the conversation goes.</p>
+            <h1 id="headline">Ask out loud.<br><span id="headline-accent" aria-hidden="true">Hear my story.</span><span class="sr-only">Hear my story.</span></h1>
+            <p>Find out what I’ve built, how I work, and what I’m learning. Speak or type a question.</p>
           </section>
 
           <section class="voice-stage" id="voice-stage" aria-labelledby="voice-heading" data-state="ready" hidden>
-            <h1 id="voice-heading" class="eyebrow"><svg class="icon"><use href="#i-wave"/></svg> VOICE MODE</h1>
+            <h1 id="voice-heading" class="eyebrow"><svg class="icon"><use href="#i-wave"/></svg> Voice mode</h1>
             <div class="orb-frame" aria-hidden="true"><span class="orb"></span></div>
             <p id="voice-status" class="voice-status" role="status">Ready to talk</p>
             <p id="voice-hint" class="voice-hint">Tap the mic to ask a question.</p>
@@ -107,14 +105,14 @@
           </section>
 
           <section class="chat-panel" id="chat-panel" aria-labelledby="chat-title" hidden>
-            <h2 id="chat-title" class="eyebrow"><svg class="icon"><use href="#i-message"/></svg> SESSION TRANSCRIPT</h2>
+            <h2 id="chat-title" class="eyebrow"><svg class="icon"><use href="#i-message"/></svg> Transcript</h2>
             <div id="chat-log" class="chat-log" role="log" aria-label="Messages" aria-relevant="additions"></div>
           </section>
 
           <div class="composer-area">
             <form id="composer" class="composer" autocomplete="off">
-              <label for="question" class="sr-only">Interview question</label>
-              <textarea id="question" placeholder="Ask an interview question…" rows="1" maxlength="1000" spellcheck="true"></textarea>
+              <label for="question" class="sr-only">Your question</label>
+              <textarea id="question" placeholder="Ask a question…" rows="1" maxlength="1000" spellcheck="true"></textarea>
               <div class="composer-toolbar">
                 <span class="keyboard-hint"><kbd>↵</kbd> to send</span>
                 <button type="button" id="open-voice" class="voice-button" aria-controls="voice-stage"><svg class="icon"><use href="#i-wave"/></svg> Voice mode</button>
@@ -122,20 +120,20 @@
               </div>
             </form>
             <div class="suggestions" id="suggestions">
-              <span class="eyebrow">TRY A QUESTION</span>
+              <span class="eyebrow">Try asking</span>
               <div id="quick-prompts" class="quick-prompts"></div>
             </div>
           </div>
         </div>
         <div class="workspace-meta">
-          <span><span class="status-dot"></span> <span>Sample responses</span></span>
-          <span><svg class="icon"><use href="#i-lock"/></svg> Session-only transcript</span>
+          <span><span class="status-dot"></span> <span>Sample replies</span></span>
+          <span><svg class="icon"><use href="#i-lock"/></svg> Transcript stays in this tab</span>
         </div>
       </main>
     </div>
 
     <footer class="footer">
-      <div><strong>WoiseX100</strong><span class="footer-separator">/</span>Built for the 100x AI Agent assessment</div>
+      <div><strong>WoiseX100</strong><span class="footer-separator">/</span>Built for the 100x assessment</div>
       <div class="footer-links"><button type="button" data-open="privacy-dialog">Privacy</button><a href="#pixel-curtain">Pixel curtain <svg class="icon"><use href="#i-chevron"/></svg></a></div>
     </footer>
   </div>
@@ -144,16 +142,14 @@
   <dialog id="owner-dialog" aria-labelledby="owner-title">
     <button type="button" class="dialog-close icon-button" aria-label="Close owner setup"><svg class="icon"><use href="#i-close"/></svg></button>
     <div class="dialog-icon"><svg class="icon"><use href="#i-lock"/></svg></div>
-    <span class="eyebrow">OWNER SETUP · PREVIEW</span>
-    <h2 id="owner-title">Give your agent context.</h2>
+    <h2 id="owner-title">Add your profile</h2>
     <p>This is where the owner will add their story, work examples, and sample answers. The agent will use the approved material to answer interview questions in their style.</p>
     <div class="dialog-note"><strong>Profile publishing</strong><span>Available once owner sign-in and the interview backend are connected.</span></div>
   </dialog>
   <dialog id="privacy-dialog" aria-labelledby="privacy-title">
     <button type="button" class="dialog-close icon-button" aria-label="Close privacy"><svg class="icon"><use href="#i-close"/></svg></button>
     <div class="dialog-icon"><svg class="icon"><use href="#i-lock"/></svg></div>
-    <span class="eyebrow">THIS PREVIEW</span>
-    <h2 id="privacy-title">Your interview session.</h2>
+    <h2 id="privacy-title">Your conversation</h2>
     <p>WoiseX100 keeps this preview’s transcript in this tab’s memory. Refresh or start a new conversation to clear it.</p>
     <p>Voice mode only listens when you press the mic. Depending on your browser, dictation may send audio to its speech recognition service. You can use text at any time.</p>
   </dialog>

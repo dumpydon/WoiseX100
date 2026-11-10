@@ -52,18 +52,11 @@ function setSidebar(open, restoreFocus = true) {
   else if (wasOpen && restoreFocus && smallScreen.matches) menu.focus();
 }
 
-function addPrompt({ title, prompt }, index, container, chip = false) {
+function addPrompt({ title, prompt }, container, chip = false) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = chip ? 'prompt-chip' : 'prompt-button';
   button.title = prompt;
-  if (!chip) {
-    const number = document.createElement('span');
-    number.className = 'prompt-number';
-    number.setAttribute('aria-hidden', 'true');
-    number.textContent = String(index + 1).padStart(2, '0');
-    button.append(number);
-  }
   button.append(title, icon('i-up-right'));
   button.addEventListener('click', () => {
     if (submitQuestion(prompt)) setSidebar(false);
@@ -72,8 +65,8 @@ function addPrompt({ title, prompt }, index, container, chip = false) {
 }
 
 for (const [index, question] of questions.entries()) {
-  addPrompt(question, index, $('#side-prompts'));
-  if (index < 3) addPrompt(question, index, $('#quick-prompts'), true);
+  addPrompt(question, $('#side-prompts'));
+  if (index < 3) addPrompt(question, $('#quick-prompts'), true);
 }
 
 function renderView() {

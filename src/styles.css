@@ -78,7 +78,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 .brand-icon img { display: block; width: 100%; height: auto; }
 .brand strong { display: block; font-size: 17px; letter-spacing: -.045em; }
 .brand strong span { color: var(--accent-text); }
-.brand small { display: block; margin-top: 4px; color: var(--muted); font: 500 9px/1 var(--mono); letter-spacing: .105em; }
+.brand small { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; line-height: 1.3; }
 .header-right { gap: 22px; }
 .preview-badge {
   gap: 8px;
@@ -97,9 +97,9 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 
 .layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); min-height: max(635px, calc(100svh - var(--header) - 62px)); }
 .sidebar { display: flex; flex-direction: column; padding: 27px 17px 18px; background: var(--sidebar); border-right: 1px solid var(--line); }
-.eyebrow { display: block; margin: 0; color: var(--muted); font: 500 10px/1.45 var(--mono); letter-spacing: .105em; }
+.eyebrow { display: block; margin: 0; color: var(--muted); font-size: 12px; font-weight: 550; line-height: 1.4; }
 .sidebar-head { display: flex; justify-content: space-between; align-items: center; padding: 0 7px; margin-bottom: 15px; }
-.side-index { color: var(--accent-text); margin-right: 5px; }
+.sidebar-head .eyebrow { color: var(--text); }
 .new-button, .owner-button, .icon-button, .voice-button, .prompt-button, .prompt-chip { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; }
 .new-button {
   min-height: 42px;
@@ -114,8 +114,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 .new-button .icon { color: var(--accent-text); }
 .new-button:hover { background: #2a1f27; border-color: #6b3546; }
 .prompt-section { margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--line); }
-.prompt-section > h2, .prompt-section > p { padding: 0 7px; }
-.prompt-section > p { margin: 11px 0 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.prompt-section > h2 { padding: 0 7px; }
 .prompt-list { display: grid; gap: 2px; margin-top: 9px; }
 .prompt-button {
   min-height: 39px;
@@ -128,10 +127,8 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
   font-size: 13px;
   color: #d6cfd8;
 }
-.prompt-number { color: #a08c98; font: 400 10px/1 var(--mono); }
 .prompt-button .icon { margin-left: auto; width: 12px; height: 12px; opacity: .65; }
 .prompt-button:hover, .prompt-button[aria-current="true"] { background: #241b22; border-color: #3a2933; color: var(--text); }
-.prompt-button:hover .prompt-number, .prompt-button[aria-current="true"] .prompt-number { color: var(--accent-text); }
 .sidebar-bottom { display: grid; gap: 8px; margin-top: auto; padding: 26px 1px 0; }
 .sidebar-bottom > .eyebrow { padding: 0 6px; }
 .select-wrap { position: relative; display: flex; align-items: center; }
@@ -177,24 +174,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
   padding: 65px 28px 46px;
 }
 .welcome { text-align: center; width: min(100%, 920px); }
-.hero-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  color: #f6a9b9;
-  background: #27191f;
-  border: 1px solid #462835;
-  border-radius: 24px;
-  padding: 7px 12px;
-  font: 550 10px/1 var(--mono);
-  letter-spacing: .09em;
-}
-.hero-label-divider { width: 1px; height: 11px; background: #674552; }
-.signal-mark { display: inline-flex; height: 13px; align-items: center; gap: 2px; }
-.signal-mark i { width: 2px; height: 4px; border-radius: 2px; background: var(--accent-text); }
-.signal-mark i:nth-child(2), .signal-mark i:nth-child(4) { height: 8px; }
-.signal-mark i:nth-child(3) { height: 12px; }
-.welcome h1 { margin: 19px auto 15px; font-size: clamp(40px, 5.05vw, 76px); font-weight: 560; line-height: 1.035; letter-spacing: -.069em; text-wrap: balance; }
+.welcome h1 { margin: 0 auto 15px; font-size: clamp(40px, 5.05vw, 76px); font-weight: 560; line-height: 1.035; letter-spacing: -.055em; text-wrap: balance; }
 #headline-accent { color: var(--accent-text); display: inline-block; transition: opacity 180ms, transform 180ms; }
 #headline-accent.changing { opacity: 0; transform: translateY(4px); }
 .welcome p { max-width: 460px; margin: 0 auto; color: #bab2bb; font-size: 15px; line-height: 1.65; text-wrap: pretty; }
@@ -253,7 +233,8 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
   margin: 0 24px;
   border-top: 1px solid #29262b;
   color: var(--muted);
-  font: 400 10px/1.4 var(--mono);
+  font-size: 11px;
+  line-height: 1.4;
 }
 .workspace-meta > span { display: inline-flex; align-items: center; gap: 7px; }
 .workspace-meta .icon { width: 12px; height: 12px; }
@@ -396,7 +377,6 @@ dialog::backdrop { background: #0b080ccf; }
 .dialog-close { position: absolute; top: 12px; right: 12px; }
 .dialog-icon { width: 43px; height: 43px; margin-bottom: 16px; display: grid; place-items: center; border: 1px solid #673649; border-radius: 10px; background: #34202c; color: var(--accent-text); }
 .dialog-icon .icon { width: 21px; height: 21px; }
-dialog .eyebrow { color: var(--accent-text); }
 dialog h2 { margin: 7px 0 11px; font-size: 29px; line-height: 1.15; font-weight: 600; letter-spacing: -.05em; }
 dialog p { color: #d0c2cd; font-size: 14px; }
 .dialog-note { display: grid; gap: 4px; margin-top: 20px; padding: 12px; background: #261c26; border: 1px solid #4c3242; border-radius: 8px; font-size: 12px; }
@@ -423,7 +403,7 @@ dialog p { color: #d0c2cd; font-size: 14px; }
   .brand { gap: 8px; }
   .brand-icon { width: 32px; height: 32px; border-radius: 8px; }
   .brand strong { font-size: 15px; }
-  .brand small { font-size: 8px; }
+  .brand small { font-size: 10px; }
   .preview-badge { font-size: 10px; padding-inline: 8px; gap: 5px; }
   .header-link { display: none; }
   .mobile-menu, .close-sidebar { display: inline-flex !important; }
@@ -434,7 +414,7 @@ dialog p { color: #d0c2cd; font-size: 14px; }
   .scrim { position: fixed; z-index: 3; inset: 0; width: 100%; border: 0; background: #080509c7; }
   .workspace { min-height: max(530px, calc(100svh - var(--header) - 72px)); }
   .work-area { padding: 44px 16px 32px; }
-  .welcome h1 { margin-block: 17px 14px; font-size: clamp(34px, 9.5vw, 54px); }
+  .welcome h1 { margin-bottom: 14px; font-size: clamp(34px, 9.5vw, 54px); }
   .welcome p { font-size: 13px; max-width: 38ch; }
   .composer-area { margin-top: 26px; }
   .composer textarea { font-size: 16px; }
