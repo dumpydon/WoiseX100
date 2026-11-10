@@ -56,18 +56,21 @@ export function createEffortPicker(root) {
     slider.dataset.dragging = '';
     moveThumb(event);
   });
-  rail.addEventListener('pointermove', (event) => {
-    if (event.pointerId === dragPointer) moveThumb(event);
+  document.addEventListener('pointermove', (event) => {
+    if (event.pointerId !== dragPointer) return;
+    if (event.buttons === 0) endDrag();
+    else moveThumb(event);
   });
-  rail.addEventListener('pointerup', (event) => {
+  document.addEventListener('pointerup', (event) => {
     if (event.pointerId !== dragPointer) return;
     moveThumb(event);
     endDrag();
     selected()?.focus({ preventScroll: true });
   });
-  rail.addEventListener('lostpointercapture', (event) => {
+  document.addEventListener('pointercancel', (event) => {
     if (event.pointerId === dragPointer) endDrag();
   });
+  window.addEventListener('blur', endDrag);
 
   toggle.addEventListener('click', () => {
     if (close()) return;
