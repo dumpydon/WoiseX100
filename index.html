@@ -16,6 +16,7 @@
     <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M12 19V5m-6 6 6-6 6 6"/></symbol>
     <symbol id="i-up-right" viewBox="0 0 24 24"><path d="M6 18 18 6M8 6h10v10"/></symbol>
     <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="m13 2-8 12h6l-1 8 9-12h-6l1-8Z"/></symbol>
     <symbol id="i-wave" viewBox="0 0 24 24"><path d="M3 10v4m4-7v10m5-14v18m5-14v10m4-7v4"/></symbol>
     <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11v1a7 7 0 0 0 14 0v-1m-7 8v3m-3 0h6"/></symbol>
     <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
@@ -43,7 +44,7 @@
         </a>
       </div>
       <div class="header-right">
-        <span class="preview-badge"><span class="status-dot"></span>Preview</span>
+        <span class="preview-badge"><span class="status-dot"></span><span id="app-mode">Preview</span></span>
         <a class="header-link" href="https://github.com/dumpydon/WoiseX100" target="_blank" rel="noopener noreferrer">Source <svg class="icon"><use href="#i-up-right"/></svg></a>
       </div>
     </header>
@@ -101,7 +102,7 @@
               <button type="button" id="listen" class="mic-button icon-button" aria-label="Start listening" title="Start listening"><svg class="icon"><use href="#i-mic"/></svg></button>
               <button type="button" id="end-voice" class="end-button icon-button" aria-label="Close voice mode" title="Close voice mode"><svg class="icon"><use href="#i-close"/></svg></button>
             </div>
-            <p class="voice-note">Preview tones use your device’s voices. Dictation may use your browser’s speech service.</p>
+            <p class="voice-note">Playback uses your device’s voices. Dictation may use your browser’s speech service.</p>
           </section>
 
           <section class="chat-panel" id="chat-panel" aria-labelledby="chat-title" hidden>
@@ -115,6 +116,29 @@
               <textarea id="question" placeholder="Ask a question…" rows="1" maxlength="1000" spellcheck="true"></textarea>
               <div class="composer-toolbar">
                 <span class="keyboard-hint"><kbd>↵</kbd> to send</span>
+                <div class="effort-picker" id="effort-picker">
+                  <button type="button" id="effort-toggle" class="effort-toggle" aria-expanded="false" aria-controls="effort-panel" disabled>
+                    <svg class="icon" aria-hidden="true"><use href="#i-bolt"/></svg>
+                    <span id="effort-current">Effort</span>
+                    <svg class="icon effort-chevron" aria-hidden="true"><use href="#i-chevron"/></svg>
+                  </button>
+                  <div class="effort-panel" id="effort-panel" hidden>
+                    <fieldset aria-describedby="effort-note">
+                      <legend>Thinking effort</legend>
+                      <div class="effort-slider" id="effort-slider" data-level="0">
+                        <div class="effort-rail" aria-hidden="true"><span class="effort-fill"></span><span class="effort-thumb"></span></div>
+                        <div class="effort-options">
+                          <label><input type="radio" name="effort" value="low" checked><span>Low</span></label>
+                          <label><input type="radio" name="effort" value="medium"><span>Medium</span></label>
+                          <label><input type="radio" name="effort" value="high"><span>High</span></label>
+                          <label><input type="radio" name="effort" value="extra-high"><span>Extra high</span></label>
+                          <label><input type="radio" name="effort" value="max"><span>Max</span></label>
+                        </div>
+                      </div>
+                    </fieldset>
+                    <p id="effort-note">Higher effort may take longer.</p>
+                  </div>
+                </div>
                 <button type="button" id="open-voice" class="voice-button" aria-controls="voice-stage"><svg class="icon"><use href="#i-wave"/></svg> Voice mode</button>
                 <button type="submit" class="send-button icon-button" id="send" aria-label="Send question" title="Send question"><svg class="icon"><use href="#i-arrow"/></svg></button>
               </div>
@@ -126,8 +150,8 @@
           </div>
         </div>
         <div class="workspace-meta">
-          <span><span class="status-dot"></span> <span>Sample replies</span></span>
-          <span><svg class="icon"><use href="#i-lock"/></svg> Transcript stays in this tab</span>
+          <span><span class="status-dot"></span> <span id="reply-mode">Sample replies</span></span>
+          <span><svg class="icon"><use href="#i-lock"/></svg> Temporary transcript</span>
         </div>
       </main>
     </div>
@@ -144,13 +168,14 @@
     <div class="dialog-icon"><svg class="icon"><use href="#i-lock"/></svg></div>
     <h2 id="owner-title">Add your profile</h2>
     <p>This is where the owner will add their story, work examples, and sample answers. The agent will use the approved material to answer interview questions in their style.</p>
-    <div class="dialog-note"><strong>Profile publishing</strong><span>Available once owner sign-in and the interview backend are connected.</span></div>
+    <div class="dialog-note"><strong>Profile publishing</strong><span>Available once owner sign-in is connected.</span></div>
   </dialog>
   <dialog id="privacy-dialog" aria-labelledby="privacy-title">
     <button type="button" class="dialog-close icon-button" aria-label="Close privacy"><svg class="icon"><use href="#i-close"/></svg></button>
     <div class="dialog-icon"><svg class="icon"><use href="#i-lock"/></svg></div>
     <h2 id="privacy-title">Your conversation</h2>
-    <p>WoiseX100 keeps this preview’s transcript in this tab’s memory. Refresh or start a new conversation to clear it.</p>
+    <p>WoiseX100 keeps the visible transcript in this tab’s memory. Refresh or start a new conversation to clear it.</p>
+    <p>Live replies send your question and recent messages to OpenAI for processing.</p>
     <p>Voice mode only listens when you press the mic. Depending on your browser, dictation may send audio to its speech recognition service. You can use text at any time.</p>
   </dialog>
 </body>

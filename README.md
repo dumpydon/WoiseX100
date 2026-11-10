@@ -17,13 +17,13 @@ Open [the local preview](http://127.0.0.1:4173). Run `npm run check` for JavaScr
 
 ## Cloudflare deployment
 
-The `voice100x` Worker serves static assets. Workers Builds uses the root of this repo, with `npm run check` as the build command and `npm run deploy` as the deploy command. The production branch is `main`. For a manual deployment, authenticate the Cloudflare CLI for the same account, then run `npm run deploy`.
+The `voice100x` Worker serves the site and routes live questions through the OpenAI Responses API. Workers Builds uses the root of this repo, with `npm run check` as the build command and `npm run deploy` as the deploy command. The production branch is `main`. For a manual deployment, authenticate the Cloudflare CLI for the same account, then run `npm run deploy`.
 
 ## Live interview
 
-The current replies are illustrative samples. Sol style and Juniper style are preview presets that use available English device voices. Speech input uses the browser's recognition API when available, which may use the browser's speech service. Text remains available in any browser.
+Set `OPENAI_API_KEY` as an encrypted secret on the Worker to enable live replies. The page shows five thinking-effort labels, and the Worker controls which options are available and routes each one. With no key, the app uses illustrative sample replies. Sol style and Juniper style use available English device voices. Dictation uses the browser's speech recognition service when available.
 
-For the live interview, the same Worker can serve text, transcription, and speech endpoints with an `OPENAI_API_KEY` Worker secret. Both modes can share the answer generator. Start with a short, approved interview profile and use retrieval over approved Markdown if the source material grows. Keep the owner editor authenticated and keep conversation state in tab memory.
+An optional `INTERVIEW_PROFILE` secret can supply a short, approved Markdown profile. Conversation state stays in tab memory. Live replies send the current question and up to six recent messages to OpenAI, with response storage disabled on the API request.
 
 ## Design references
 

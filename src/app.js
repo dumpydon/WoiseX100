@@ -1,3 +1,4 @@
+import { createEffortPicker } from './effort-picker.js';
 import { previewReply, questions } from './preview.js';
 import { startMotion } from './motion.js';
 
@@ -15,6 +16,7 @@ const voiceStage = $('#voice-stage');
 const listen = $('#listen');
 const voiceStatus = $('#voice-status');
 const voiceHint = $('#voice-hint');
+const effortPicker = createEffortPicker($('#effort-picker'));
 const toneSelectors = [...document.querySelectorAll('[data-voice-select]')];
 const smallScreen = matchMedia('(max-width: 680px)');
 const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
@@ -28,7 +30,26 @@ let tone = 'sol';
 let voiceMode = false;
 let recognition = null;
 let speech = null;
-let replyTimer = null;
+let activeReply = null;
+let history = [];
+
+const connection = fetch('/api/status', { cache: 'no-store', signal: AbortSignal.timeout(6000) })
+  .then(async (response) => {
+    if (!response.ok) throw new Error('Status unavailable');
+    const status = await response.json();
+    if (typeof status.live !== 'boolean') throw new Error('Invalid status');
+    effortPicker.configure(status.live);
+    if (status.live) {
+      $('#app-mode').textContent = 'Live';
+      $('#reply-mode').textContent = 'Live replies';
+    }
+    return status.live ? 'live' : 'sample';
+  })
+  .catch(() => {
+    $('#app-mode').textContent = 'Unavailable';
+    $('#reply-mode').textContent = 'Replies unavailable';
+    return 'unavailable';
+  });
 
 function icon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -79,7 +100,7 @@ function renderView() {
 function updateComposer() {
   questionInput.style.height = '0px';
   questionInput.style.height = Math.min(questionInput.scrollHeight, 126) + 'px';
-  send.disabled = !questionInput.value.trim() || replyTimer !== null;
+  send.disabled = !questionInput.value.trim() || activeReply !== null;
 }
 
 function updateVoice(state, status, hint = '') {
@@ -101,8 +122,8 @@ function readyVoice(hint = Recognition ? 'Tap the mic to ask a question.' : 'Spe
 function showVoice(open, restoreFocus = true) {
   voiceMode = open;
   if (open) {
-    if (replyTimer === null) readyVoice();
-    else updateVoice('thinking', 'Preparing a sample reply…', 'Your question is in the transcript.');
+    if (activeReply === null) readyVoice();
+    else updateVoice('thinking', 'Preparing a reply…', 'Your question is in the transcript.');
   } else {
     cancelListening();
     stopSpeech();
@@ -151,19 +172,19 @@ function speak(text, button) {
   utterance.pitch = preset.pitch;
   speech = { utterance, button };
   setReplay(button, true);
-  if (voiceMode && replyTimer === null) updateVoice('speaking', 'Speaking', 'Read along in the transcript below.');
+  if (voiceMode && activeReply === null) updateVoice('speaking', 'Speaking', 'Read along in the transcript below.');
   const finish = (failed) => {
     if (speech?.utterance !== utterance) return;
     setReplay(button, false);
     speech = null;
-    if (voiceMode && replyTimer === null) readyVoice(failed ? 'Audio playback was interrupted. You can play the reply again.' : undefined);
+    if (voiceMode && activeReply === null) readyVoice(failed ? 'Audio playback was interrupted. You can play the reply again.' : undefined);
   };
   utterance.onend = () => finish(false);
   utterance.onerror = () => finish(true);
   synthesis.speak(utterance);
 }
 
-function appendMessage(author, text) {
+function appendMessage(author, text, mode) {
   const message = document.createElement('article');
   message.className = 'message message-' + author;
   const label = document.createElement('div');
@@ -176,10 +197,12 @@ function appendMessage(author, text) {
 
   let replay;
   if (author === 'agent') {
-    const sampleLabel = document.createElement('span');
-    sampleLabel.className = 'sample-label';
-    sampleLabel.textContent = 'Sample reply';
-    label.append(sampleLabel);
+    if (mode === 'sample') {
+      const sampleLabel = document.createElement('span');
+      sampleLabel.className = 'sample-label';
+      sampleLabel.textContent = 'Sample reply';
+      label.append(sampleLabel);
+    }
     replay = document.createElement('button');
     replay.className = 'replay';
     replay.type = 'button';
@@ -193,35 +216,81 @@ function appendMessage(author, text) {
 
 function submitQuestion(value) {
   const text = value.trim().slice(0, 1000);
-  if (!text || replyTimer !== null) return false;
+  if (!text || activeReply !== null) return false;
 
   cancelListening();
   stopSpeech();
   appendMessage('user', text);
   const pending = document.createElement('p');
   pending.className = 'pending';
-  pending.textContent = 'Preparing a sample reply…';
+  pending.textContent = 'Preparing a reply…';
+  const job = { text, pending, effort: effortPicker.value, controller: new AbortController() };
+  activeReply = job;
   log.append(pending);
   renderView();
   log.scrollTop = log.scrollHeight;
-  if (voiceMode) updateVoice('thinking', 'Preparing a sample reply…', 'Your question is in the transcript.');
-
-  replyTimer = window.setTimeout(() => {
-    replyTimer = null;
-    pending.remove();
-    const response = previewReply(text);
-    const replay = appendMessage('agent', response);
-    log.scrollTop = log.scrollHeight;
-    updateComposer();
-    if (voiceMode) speak(response, replay);
-  }, 380);
+  if (voiceMode) updateVoice('thinking', pending.textContent, 'Your question is in the transcript.');
+  void completeReply(job);
   updateComposer();
   return true;
 }
 
+async function fetchReply(messages, effort, signal) {
+  let response;
+  try {
+    response = await fetch('/api/reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, effort }),
+      signal,
+    });
+  } catch {
+    throw new Error('Couldn’t reach WoiseX100. Try again.');
+  }
+  const data = await response.json().catch(() => null);
+  if (!response.ok || typeof data?.text !== 'string') {
+    throw new Error(data?.error ?? 'The reply couldn’t load. Try again.');
+  }
+  return data.text;
+}
+
+async function completeReply(job) {
+  let mode;
+  let response;
+  const user = { role: 'user', content: job.text };
+  try {
+    mode = await connection;
+    if (activeReply !== job) return;
+    if (mode === 'unavailable') throw new Error('Replies are unavailable. Refresh the page to reconnect.');
+    response = mode === 'live'
+      ? await fetchReply([...history, user], job.effort ?? effortPicker.value, job.controller.signal)
+      : previewReply(job.text);
+  } catch (error) {
+    if (activeReply !== job) return;
+    activeReply = null;
+    job.pending.className = 'reply-error';
+    job.pending.textContent = error.message;
+    if (!questionInput.value) questionInput.value = job.text;
+    if (voiceMode) readyVoice(error.message);
+    log.scrollTop = log.scrollHeight;
+    updateComposer();
+    return;
+  }
+  if (activeReply !== job) return;
+  activeReply = null;
+  job.pending.remove();
+  history = [...history, user, { role: 'assistant', content: response.slice(0, 1200) }].slice(-6);
+  const replay = appendMessage('agent', response, mode);
+  log.scrollTop = log.scrollHeight;
+  updateComposer();
+  if (voiceMode) speak(response, replay);
+}
+
 function resetConversation() {
-  if (replyTimer !== null) window.clearTimeout(replyTimer);
-  replyTimer = null;
+  activeReply?.controller.abort();
+  activeReply = null;
+  history = [];
+  effortPicker.close();
   log.replaceChildren();
   questionInput.value = '';
   showVoice(false, false);
@@ -319,11 +388,13 @@ $('#close-sidebar').addEventListener('click', () => setSidebar(false));
 scrim.addEventListener('click', () => setSidebar(false));
 smallScreen.addEventListener('change', () => setSidebar(false));
 window.addEventListener('pagehide', () => {
+  activeReply?.controller.abort();
   cancelListening();
   stopSpeech();
 });
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape' || document.querySelector('dialog[open]')) return;
+  if (effortPicker.close(true)) return;
   if (sidebar.classList.contains('is-open')) setSidebar(false);
   else if (voiceMode) showVoice(false);
 });

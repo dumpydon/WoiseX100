@@ -207,7 +207,103 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
   outline: none;
 }
 .composer textarea::placeholder { color: #a49aa5; opacity: 1; }
-.composer-toolbar { display: flex; align-items: center; gap: 8px; }
+.composer-toolbar { position: relative; display: flex; align-items: center; gap: 8px; }
+.effort-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 39px;
+  padding: 0 8px;
+  border: 1px solid #45303c;
+  border-radius: 8px;
+  background: #211a21;
+  color: #f6d9e8;
+  font-size: 12px;
+  font-weight: 550;
+  white-space: nowrap;
+}
+.effort-toggle .icon { width: 13px; height: 13px; color: #f395bf; }
+.effort-toggle .effort-chevron { color: var(--muted); }
+.effort-toggle:hover, .effort-toggle[aria-expanded="true"] { border-color: #a05076; background: #35232e; }
+.effort-toggle:disabled { opacity: .55; }
+.effort-panel {
+  position: absolute;
+  z-index: 3;
+  inset-inline-end: 0;
+  bottom: calc(100% + 12px);
+  width: min(320px, 100%);
+  padding: 13px;
+  border: 1px solid #684456;
+  border-radius: 13px;
+  background: #241c24;
+  box-shadow: 0 12px 30px #080609a6;
+}
+.effort-panel fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.effort-panel legend { padding: 0; font-size: 13px; font-weight: 650; }
+.effort-panel p { margin: 7px 0 0; color: var(--muted); font-size: 11px; }
+.effort-slider { --position: 50%; position: relative; margin-top: 10px; }
+.effort-slider[data-level="0"] { --position: 10%; }
+.effort-slider[data-level="1"] { --position: 30%; }
+.effort-slider[data-level="3"] { --position: 70%; }
+.effort-slider[data-level="4"] { --position: 90%; }
+.effort-rail {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 27px;
+  border: 1px solid #57444f;
+  border-radius: 999px;
+  background: #3b3038;
+  pointer-events: none;
+}
+.effort-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--position);
+  overflow: hidden;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #dd4f94, #f58abb);
+  transition: width 220ms ease;
+}
+.effort-fill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: .7;
+  background: radial-gradient(circle, #fff6fb 0 1px, transparent 1.6px) 0 5px / 21px 9px repeat-x,
+              radial-gradient(circle, #ffd1e8 0 .7px, transparent 1.4px) 0 14px / 17px 7px repeat-x;
+  animation: effort-particles 2.3s linear infinite;
+}
+@keyframes effort-particles { to { background-position: 42px 5px, 17px 14px; } }
+.effort-thumb {
+  position: absolute;
+  top: 50%;
+  left: var(--position);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff8fb;
+  box-shadow: 0 1px 5px #2f162966;
+  transform: translate(-50%, -50%);
+  transition: left 220ms ease;
+}
+.effort-options { position: relative; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.effort-options label {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 11px 0 0;
+  border-radius: 5px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.effort-options label::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #f0bad29c; }
+.effort-options label:has(input:checked) { color: #ffc2de; font-weight: 650; }
+.effort-options label:has(input:checked)::before { visibility: hidden; }
+.effort-options label:has(input:focus-visible) { outline: 2px solid #f395bf; outline-offset: 2px; }
+.effort-options input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: inherit; }
 .keyboard-hint { margin-right: auto; color: #a79ca8; font: 400 10px/1 var(--mono); }
 .keyboard-hint kbd { font: inherit; color: #c2b7c3; padding: 1px 3px; border: 1px solid #3e343e; border-radius: 3px; margin-right: 3px; }
 .voice-button { min-height: 39px; border-radius: 8px; padding: 0 10px; border-color: #45303c; background: #261d24; color: #ffe2ea; font-weight: 550; font-size: 12px; }
@@ -288,6 +384,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 .replay .icon { width: 14px; height: 14px; }
 .replay:hover, .replay[aria-pressed="true"] { border-color: #583442; color: #ffe4ed; background: #2c1e27; }
 .pending { margin: 0; color: var(--muted); font-size: 12px; }
+.reply-error { margin: 0; color: #ffc1d8; font-size: 13px; }
 
 .voice-stage { width: min(100%, 650px); display: grid; justify-items: center; text-align: center; margin-bottom: 15px; }
 .voice-stage h1 { color: #ffd0dc; }
@@ -431,8 +528,12 @@ dialog p { color: #d0c2cd; font-size: 14px; }
   .preview-badge { font-size: 9px; }
   .topbar { padding-inline: 9px; }
   .header-left { gap: 5px; }
-  .keyboard-hint { visibility: hidden; }
   .workspace-meta { font-size: 9px; }
+}
+
+@media (max-width: 520px) {
+  .keyboard-hint { display: none; }
+  .effort-picker { margin-inline-end: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
