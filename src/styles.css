@@ -70,10 +70,12 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
   place-items: center;
   width: 38px;
   height: 38px;
-  background: #21171c;
+  overflow: hidden;
+  background: #090608;
   border: 1px solid #442630;
   border-radius: 10px;
 }
+.brand-icon img { display: block; width: 100%; height: auto; }
 .brand strong { display: block; font-size: 17px; letter-spacing: -.045em; }
 .brand strong span { color: var(--accent-text); }
 .brand small { display: block; margin-top: 4px; color: var(--muted); font: 500 9px/1 var(--mono); letter-spacing: .105em; }
@@ -420,7 +422,6 @@ dialog p { color: #d0c2cd; font-size: 14px; }
   .topbar { padding-inline: 13px; }
   .brand { gap: 8px; }
   .brand-icon { width: 32px; height: 32px; border-radius: 8px; }
-  .brand-icon img { width: 22px; height: 22px; }
   .brand strong { font-size: 15px; }
   .brand small { font-size: 8px; }
   .preview-badge { font-size: 10px; padding-inline: 8px; gap: 5px; }

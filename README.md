@@ -29,5 +29,5 @@ For the live interview, the same Worker can serve text, transcription, and speec
 
 - [DayPilot](https://github.com/dumpydon/daypilot) for the workspace and animated signal rails.
 - [Limit X Pixel Curtain Bundle](https://github.com/dumpydon/useful-things-elements/blob/main/LIMITX_PIXEL_CURTAIN_BUNDLE.md) for the fixed canvas reveal. The curtain uses DayPilot’s cell geometry, Simplex field, and timing. Times New Roman reproduces the serif lettering in the DayPilot reference capture.
-- [100x](https://www.linkedin.com/company/100xinc/) for the coral, black, and white palette. The WoiseX100 mark is an original W/X waveform drawn from an ImageGen concept.
+- [100x](https://www.linkedin.com/company/100xinc/) for the coral, black, and white palette. The site logo and favicon use the original glowing W/X artwork.
 - [Geist](https://github.com/vercel/geist-font), licensed under the [SIL Open Font License](public/fonts/OFL.txt).
