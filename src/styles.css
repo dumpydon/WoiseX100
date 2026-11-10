@@ -241,23 +241,30 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 .effort-panel fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .effort-panel legend { padding: 0; font-size: 13px; font-weight: 650; }
 .effort-panel p { margin: 7px 0 0; color: var(--muted); font-size: 11px; }
-.effort-slider { --position: 50%; --particle-duration: 3s; position: relative; margin-top: 12px; }
+.effort-slider { --position: 50%; --max-position: 90%; --particle-duration: 3s; position: relative; margin-top: 12px; }
 .effort-slider[data-level="0"] { --position: 10%; }
 .effort-slider[data-level="1"] { --position: 30%; --particle-duration: 4s; }
 .effort-slider[data-level="3"] { --position: 70%; --particle-duration: 2.3s; }
-.effort-slider[data-level="4"] { --position: 90%; --particle-duration: 2s; }
+.effort-slider[data-level="4"] { --position: var(--max-position); --particle-duration: 2s; }
 :root:has(.effort-slider[data-dragging]),
 :root:has(.effort-slider[data-dragging]) * { cursor: grabbing; }
 .effort-rail {
+  --thumb-size: 28px;
   position: absolute;
   z-index: 1;
   inset: 0 0 auto;
   height: 24px;
   border-radius: 999px;
-  background: #3b3038;
-  box-shadow: inset 0 0 0 1px #57444f;
   cursor: grab;
   touch-action: none;
+}
+.effort-rail::before {
+  content: '';
+  position: absolute;
+  inset: 0 max(0px, calc(100% - var(--max-position) - var(--thumb-size) / 2)) 0 0;
+  border-radius: inherit;
+  background: #3b3038;
+  box-shadow: inset 0 0 0 1px #57444f;
 }
 .effort-fill {
   position: absolute;
@@ -288,8 +295,8 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
   position: absolute;
   top: 50%;
   left: var(--drag-position, var(--position));
-  width: 28px;
-  height: 28px;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 0 0 1px #ffffff26, 0 1px 5px #2f162966;
