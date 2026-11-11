@@ -436,9 +436,12 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
   background: radial-gradient(circle, #c1477036, transparent 67%);
 }
 .orb-frame::after { content: ''; position: absolute; inset: 7px; border: 1px dashed #a85c7266; border-radius: 50%; }
+.orb-motion, .orb-activation { display: grid; place-items: center; aspect-ratio: 1; border-radius: 50%; }
+.orb-motion { width: 76%; transition: transform 80ms ease-out, filter 80ms ease-out; }
+.orb-activation { width: 100%; }
 .orb {
   display: block;
-  width: 76%;
+  width: 100%;
   aspect-ratio: 1;
   overflow: hidden;
   position: relative;
@@ -458,7 +461,9 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
   animation: orb-drift 9s linear infinite;
 }
 .voice-stage[data-tone="juniper"] .orb::before { filter: hue-rotate(15deg) blur(5px); }
-.voice-stage[data-state="listening"] .orb { animation-duration: 2s; box-shadow: 0 0 48px #ff4f86bb; }
+.voice-stage[data-state="listening"] .orb { animation: none; box-shadow: 0 0 48px #ff4f86bb; }
+.voice-stage[data-state="listening"] .orb-motion { transform: scale(calc(1 + var(--mic-level, 0) * var(--mic-reactivity, 1) * .1)); filter: brightness(calc(1 + var(--mic-level, 0) * var(--mic-reactivity, 1) * .14)); }
+.voice-stage[data-state="listening"] .orb-frame::after { opacity: calc(.6 + var(--mic-level, 0) * .4); }
 .voice-stage[data-state="speaking"] .orb::before { animation-duration: 3.5s; }
 @keyframes orb-breathe { 0%, 100% { transform: scale(.96); } 50% { transform: scale(1.025); } }
 @keyframes orb-drift { to { transform: rotate(360deg); } }
@@ -472,6 +477,10 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 .mic-button:disabled { opacity: .55; }
 .end-button { border: 1px solid #573145; background: #281a24; }
 .voice-note { max-width: 40ch; margin: 8px 0 0; color: var(--muted); font-size: 11px; }
+.interface-sounds { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; margin-top: 5px; padding: 3px 9px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted); font-size: 11px; }
+.interface-sounds .icon { width: 14px; height: 14px; }
+.interface-sounds:hover { color: #ffe2ea; border-color: #573145; }
+.interface-sounds[aria-checked="false"] { opacity: .75; }
 
 .footer {
   --footer-width: 1120px;
@@ -599,4 +608,5 @@ dialog p { color: #d0c2cd; font-size: 14px; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  .voice-stage[data-state="listening"] .orb-motion { transform: none; }
 }

@@ -26,6 +26,7 @@
     <symbol id="i-menu" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M10 5v14"/></symbol>
     <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 2.8v3.5"/></symbol>
     <symbol id="i-play" viewBox="0 0 24 24"><path d="M10 7 5 11H3v2h2l5 4V7Zm5 2a4 4 0 0 1 0 6m2.5-8.5a7.5 7.5 0 0 1 0 11"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5Zm4 3a5 5 0 0 1 0 8m3-11a9 9 0 0 1 0 14"/></symbol>
     <symbol id="i-message" viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H5l1.3-3.6a7.5 7.5 0 1 1 13.7-3.9Z"/><path d="M9 12h7"/></symbol>
   </svg>
 
@@ -92,9 +93,9 @@
 
           <section class="voice-stage" id="voice-stage" aria-labelledby="voice-heading" data-state="ready" hidden>
             <h1 id="voice-heading" class="eyebrow"><svg class="icon"><use href="#i-wave"/></svg> Voice mode</h1>
-            <div class="orb-frame" aria-hidden="true"><span class="orb"></span></div>
-            <p id="voice-status" class="voice-status" role="status">Ready to talk</p>
-            <p id="voice-hint" class="voice-hint">Tap the mic to ask a question.</p>
+            <div class="orb-frame" aria-hidden="true"><span class="orb-motion"><span class="orb-activation"><span class="orb"></span></span></span></div>
+            <p id="voice-status" class="voice-status" role="status">Opening the microphone…</p>
+            <p id="voice-hint" class="voice-hint">Allow microphone access if your browser asks.</p>
             <div class="voice-controls">
               <div class="select-wrap">
                 <label class="sr-only" for="console-voice">Voice mode tone</label>
@@ -107,6 +108,7 @@
               <button type="button" id="listen" class="mic-button icon-button" aria-label="Start listening" title="Start listening"><svg class="icon"><use href="#i-mic"/></svg></button>
               <button type="button" id="end-voice" class="end-button icon-button" aria-label="Close voice mode" title="Close voice mode"><svg class="icon"><use href="#i-close"/></svg></button>
             </div>
+            <button type="button" id="interface-sounds" class="interface-sounds" role="switch" aria-checked="true" title="Play the microphone-ready chime"><svg class="icon" aria-hidden="true"><use href="#i-sound"/></svg><span>Interface sounds on</span></button>
             <p class="voice-note">Playback uses your device’s voices. Dictation may use your browser’s speech service.</p>
           </section>
 
@@ -213,7 +215,8 @@
     <h2 id="privacy-title">Privacy Policy</h2>
     <p>WoiseX100 keeps the visible transcript in this tab’s memory. Refresh or start a new conversation to clear it.</p>
     <p>Live replies send your question and recent messages to OpenAI for processing.</p>
-    <p>Voice mode only listens when you press the mic. Depending on your browser, dictation may send audio to its speech recognition service. You can use text at any time.</p>
+    <p>Opening Voice mode requests microphone access and starts listening. Stop the mic or close voice mode to stop capture. Depending on your browser, dictation may send audio to its speech recognition service. You can use text at any time.</p>
+    <p>Your interface-sounds preference is saved on this device. It does not save your conversations.</p>
   </dialog>
 </body>
 </html>

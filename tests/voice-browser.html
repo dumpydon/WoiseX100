@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WoiseX100 controlled voice QA</title>
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+  <p>Loading controlled voice QA. No real microphone will be used.</p>
+  <script type="module">
+    // Local-only test entry point. It is not imported by the production app or included in its assets.
+    const template = new DOMParser().parseFromString(await (await fetch('/index.html')).text(), 'text/html');
+    document.body.replaceChildren(...template.body.childNodes);
+    const contexts = new Set();
+    const previousSounds = localStorage.getItem('woisex100:interface-sounds');
+    const test = window.__voiceTest = { scenario: 'success', chimes: 0, starts: 0, streams: [], states: [], latest: null, pending: null, NativeRecognition: window.SpeechRecognition ?? window.webkitSpeechRecognition };
+    const controls = document.createElement('div');
+    controls.style.cssText = 'position:fixed;z-index:10000;bottom:0;left:0;background:#fff;color:#111;padding:6px;font:12px sans-serif;display:flex;gap:6px;align-items:center';
+    controls.innerHTML = '<strong>Synthetic voice QA</strong><select aria-label="Test scenario"><option value="success">Success</option><option value="overlap">First words during chime</option><option value="denied">Permission denied</option><option value="service-error">Service failure</option><option value="pending">Pending permission</option><option value="duplicate">Duplicate events</option></select><button type="button">Speak test phrase</button><button type="button">Resolve permission</button>';
+    document.body.append(controls);
+    controls.querySelector('select').onchange = event => { test.scenario = event.target.value; test.overlapSent = false; };
+    const OriginalStart = AudioBufferSourceNode.prototype.start;
+    AudioBufferSourceNode.prototype.start = function (...args) {
+      if (!(this.context instanceof OfflineAudioContext) && Math.abs((this.buffer?.duration ?? 0) - .4) < .001) { test.chimes += 1; test.cueAt = performance.now(); }
+      return OriginalStart.apply(this, args);
+    };
+    class FakeRecognition {
+      constructor() { test.latest = this; this.active = false; }
+      start(input) {
+        if (!(input instanceof MediaStreamTrack)) throw new TypeError('A track is required');
+        test.starts += 1;
+        this.active = true;
+        setTimeout(() => {
+          if (!this.active) return;
+          if (test.scenario === 'service-error') { this.onerror?.({ error: 'network' }); return; }
+          this.onstart?.(); this.onaudiostart?.();
+          if (test.scenario === 'duplicate') { this.onstart?.(); this.onaudiostart?.(); }
+          if (test.scenario === 'overlap' && !test.overlapSent) { test.overlapSent = true; setTimeout(() => this.speak(), 20); }
+        }, 80);
+      }
+      abort() { this.active = false; }
+      stop() { this.active = false; this.onend?.(); }
+      speak() {
+        if (!this.active) return;
+        test.firstWordsAt = performance.now();
+        this.onspeechstart?.();
+        const stream = test.streams.at(-1);
+        if (stream?.gain) {
+          stream.gain.gain.setValueAtTime(.12, stream.context.currentTime);
+          stream.gain.gain.setValueAtTime(0, stream.context.currentTime + .45);
+        }
+        const partial = [{ transcript: 'Hello from the first word' }]; partial.isFinal = false;
+        this.onresult?.({ resultIndex: 0, results: [partial] });
+        setTimeout(() => {
+          if (!this.active) return;
+          const final = [{ transcript: 'Hello from the first word' }]; final.isFinal = true;
+          this.onresult?.({ resultIndex: 0, results: [final] });
+        }, 650);
+      }
+    }
+    window.SpeechRecognition = window.webkitSpeechRecognition = FakeRecognition;
+    async function fakeStream() {
+      const context = new AudioContext(); contexts.add(context); await context.resume();
+      const oscillator = context.createOscillator(); oscillator.frequency.value = 175;
+      const gain = context.createGain(); gain.gain.value = 0;
+      const destination = context.createMediaStreamDestination();
+      oscillator.connect(gain); gain.connect(destination); oscillator.start();
+      const record = { context, gain, stream: destination.stream, oscillator };
+      test.streams.push(record);
+      return destination.stream;
+    }
+    Object.defineProperty(navigator.mediaDevices, 'getUserMedia', { configurable: true, value: () => {
+      if (test.scenario === 'denied') return Promise.reject(new DOMException('Test denial', 'NotAllowedError'));
+      if (test.scenario === 'pending') return new Promise(resolve => { test.pending = () => fakeStream().then(resolve); });
+      return fakeStream();
+    } });
+    const normalFetch = window.fetch.bind(window);
+    window.fetch = (input, options) => String(input).endsWith('/api/reply')
+      ? Promise.resolve(Response.json({ text: 'Controlled playback test.' })) : normalFetch(input, options);
+    controls.querySelectorAll('button')[0].onclick = () => test.latest?.speak();
+    controls.querySelectorAll('button')[1].onclick = () => test.pending?.();
+    new MutationObserver(() => {
+      const stage = document.querySelector('#voice-stage');
+      if (test.states.at(-1) !== stage.dataset.state) test.states.push(stage.dataset.state);
+      test.peakLevel = Math.max(test.peakLevel ?? 0, Number(stage.style.getPropertyValue('--mic-level')) || 0);
+    }).observe(document.querySelector('#voice-stage'), { attributes: true, attributeFilter: ['data-state', 'style'] });
+    window.addEventListener('pagehide', () => {
+      for (const context of contexts) context.close();
+      if (previousSounds === null) localStorage.removeItem('woisex100:interface-sounds');
+      else localStorage.setItem('woisex100:interface-sounds', previousSounds);
+    });
+    await import('/src/app.js?controlled-voice-qa');
+    test.checkFilters = async () => {
+      const { activationChimeSamples, CHIME_FILTER_FREQUENCIES, CHIME_FILTER_Q } = await import('/src/voice-audio.js');
+      const rate = 48000;
+      const offline = new OfflineAudioContext(4, rate, rate);
+      const cue = offline.createBuffer(1, Math.round(rate * .4), rate);
+      cue.copyToChannel(activationChimeSamples(rate), 0);
+      const vocal = await offline.decodeAudioData(await (await normalFetch('/tests/fixtures/first-words.wav')).arrayBuffer());
+      const merger = offline.createChannelMerger(4); merger.connect(offline.destination);
+      const connect = (buffer, channel, filtered) => {
+        const source = offline.createBufferSource(); source.buffer = buffer;
+        let tail = source;
+        if (filtered) for (const frequency of CHIME_FILTER_FREQUENCIES) {
+          const filter = offline.createBiquadFilter(); filter.type = 'notch'; filter.frequency.value = frequency; filter.Q.value = CHIME_FILTER_Q;
+          tail.connect(filter); tail = filter;
+        }
+        tail.connect(merger, 0, channel); source.start(.02);
+      };
+      connect(cue, 0, false); connect(cue, 1, true);
+      connect(vocal, 2, false); connect(vocal, 3, true);
+      const rendered = await offline.startRendering();
+      const rms = data => Math.sqrt(data.reduce((sum, value) => sum + value * value, 0) / data.length);
+      const rawCue = rms(rendered.getChannelData(0)); const filteredCue = rms(rendered.getChannelData(1));
+      const voice = rendered.getChannelData(2), filteredVoice = rendered.getChannelData(3);
+      let onset = voice.findIndex(value => Math.abs(value) > .002);
+      const segment = Math.round(rate * .08);
+      return { cueAttenuationDb: 20 * Math.log10(filteredCue / rawCue), firstVoiceMs: onset / rate * 1000,
+        firstWordEnergyRatio: rms(filteredVoice.slice(onset, onset + segment)) / rms(voice.slice(onset, onset + segment)) };
+    };
+  </script>
+</body>
+</html>

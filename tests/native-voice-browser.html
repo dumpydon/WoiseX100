@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><title>Protected audio-track recognition QA</title></head>
+<body>
+  <h1>Protected audio-track recognition QA</h1>
+  <p>This local test uses generated speech and a simulated chime echo. It never requests a hardware microphone.</p>
+  <button id="run" type="button">Run synthetic recognition test</button>
+  <button id="cue-only" type="button">Run chime-only recognition test</button>
+  <pre id="result">Not run</pre>
+  <script type="module">
+    import { createVoiceAudio, activationChimeSamples } from '/src/voice-audio.js';
+    import { createVoiceInput } from '/src/voice-input.js';
+    let cleanup = () => {};
+    async function run(chimeOnly = false) {
+      cleanup();
+      const result = window.__nativeVoiceResult = { states: [], activations: 0, text: null, chimeOnly, speechEvents: 0 };
+      const view = document.querySelector('#result');
+      const render = () => { view.textContent = JSON.stringify(result, null, 2); };
+      const version = /Chrome\/(\d+)/.exec(navigator.userAgent);
+      if (!version || Number(version[1]) < 135 || /Android|Mobile/.test(navigator.userAgent)) {
+        result.skipped = 'This controlled track test requires desktop Chromium 135+.'; render(); return;
+      }
+      const Native = window.SpeechRecognition ?? window.webkitSpeechRecognition;
+      if (!Native) { result.skipped = 'No recognition service'; render(); return; }
+      const microphone = new AudioContext();
+      const resumed = microphone.resume();
+      const audio = createVoiceAudio();
+      const prepared = audio.prepare();
+      let controller, watchdog, finishTimer;
+      cleanup = () => { clearTimeout(watchdog); clearTimeout(finishTimer); controller?.cancel(); audio.dispose(); microphone.close().catch(() => {}); };
+      class TrackOnlyRecognition {
+        constructor() {
+          const recognition = new Native();
+          recognition.addEventListener('speechstart', () => { result.speechEvents += 1; });
+          const start = recognition.start.bind(recognition);
+          recognition.start = track => {
+            if (!(track instanceof MediaStreamTrack)) throw new TypeError('Hardware-mic fallback is disabled in this test.');
+            return start(track);
+          };
+          return recognition;
+        }
+      }
+      try {
+        await Promise.all([resumed, prepared]);
+        const speech = await microphone.decodeAudioData(await (await fetch('/tests/fixtures/first-words.wav')).arrayBuffer());
+        const destination = microphone.createMediaStreamDestination();
+        const simulatedEcho = microphone.createBuffer(1, Math.round(microphone.sampleRate * .4), microphone.sampleRate);
+        simulatedEcho.copyToChannel(activationChimeSamples(microphone.sampleRate), 0);
+        controller = createVoiceInput({
+          Recognition: TrackOnlyRecognition,
+          mediaDevices: { getUserMedia: async () => destination.stream },
+          audio,
+          onState(state, status, hint) {
+            result.states.push(state); result.status = status; result.hint = hint; render();
+            if (state === 'idle' || state === 'error') {
+              const expectedSilence = state === 'idle' || hint.includes('No speech was heard');
+              if (chimeOnly && expectedSilence && result.cuePlayed && !result.speechEvents && !result.interim && !result.text) result.passed = true;
+              else result.failed = true;
+              render(); cleanup();
+            }
+          },
+          onActivation(cue) {
+            result.activations += 1; result.cuePlayed = cue.played;
+            const voice = microphone.createBufferSource(); voice.buffer = speech; voice.connect(destination);
+            const echo = microphone.createBufferSource(); echo.buffer = simulatedEcho;
+            const gain = microphone.createGain(); gain.gain.value = .6;
+            echo.connect(gain); gain.connect(destination);
+            const now = microphone.currentTime;
+            if (!chimeOnly) voice.start(now + .02);
+            echo.start(now + .018);
+            finishTimer = setTimeout(() => controller.finish(), chimeOnly ? 1200 : (speech.duration + .8) * 1000);
+            render();
+          },
+          onInterim(text) { result.interim = text; render(); },
+          onFinal(text) { result.text = text; result.passed = !chimeOnly && /^hello\b/i.test(text); render(); cleanup(); },
+        });
+        watchdog = setTimeout(() => { result.failed = true; result.status = 'Timed out'; render(); cleanup(); }, 25000);
+        controller.start();
+      } catch (error) { result.failed = true; result.status = error.name; render(); cleanup(); }
+    }
+    document.querySelector('#run').onclick = () => run(false);
+    document.querySelector('#cue-only').onclick = () => run(true);
+    window.addEventListener('pagehide', () => cleanup());
+  </script>
+</body></html>

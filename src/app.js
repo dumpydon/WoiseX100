@@ -1,6 +1,8 @@
 import { createEffortPicker } from './effort-picker.js';
 import { previewReply, questions } from './preview.js';
 import { startMotion } from './motion.js';
+import { createVoiceAudio, readInterfaceSounds, saveInterfaceSounds } from './voice-audio.js';
+import { createVoiceInput } from './voice-input.js';
 
 const $ = (selector) => document.querySelector(selector);
 const workspace = $('#interview');
@@ -16,6 +18,7 @@ const voiceStage = $('#voice-stage');
 const listen = $('#listen');
 const voiceStatus = $('#voice-status');
 const voiceHint = $('#voice-hint');
+const interfaceSounds = $('#interface-sounds');
 const effortPicker = createEffortPicker($('#effort-picker'));
 const replyIndicator = $('#reply-status');
 const runtimeIndicator = $('#runtime-status');
@@ -37,10 +40,53 @@ const tones = {
 
 let tone = 'sol';
 let voiceMode = false;
-let recognition = null;
 let speech = null;
 let activeReply = null;
 let history = [];
+let autoListen = false;
+let activationPulse = null;
+let soundStorage;
+try { soundStorage = window.localStorage; } catch { /* Keep the sound setting in memory. */ }
+const voiceAudio = createVoiceAudio({ enabled: readInterfaceSounds(soundStorage), onLevel: setMicLevel });
+const voiceInput = createVoiceInput({
+  Recognition,
+  audio: voiceAudio,
+  onState(state, status, hint) {
+    if (!voiceMode) return;
+    if (state === 'error' || state === 'idle') {
+      autoListen = false;
+      activationPulse?.cancel();
+      activationPulse = null;
+      voiceStage.style.setProperty('--mic-reactivity', '1');
+    }
+    updateVoice(state, status, hint);
+  },
+  onActivation({ delay }) {
+    if (!voiceMode) return;
+    activationPulse?.cancel();
+    voiceStage.style.setProperty('--mic-reactivity', '0');
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    activationPulse = $('.orb-activation').animate?.([
+      { transform: 'scale(1)', filter: 'brightness(1)' },
+      { transform: reduce ? 'scale(1)' : 'scale(1.045)', filter: 'brightness(1.13)', offset: .42 },
+      { transform: 'scale(1)', filter: 'brightness(1)' },
+    ], { duration: 420, delay: delay * 1000, easing: 'ease-in-out' });
+    if (activationPulse) activationPulse.onfinish = () => voiceStage.style.setProperty('--mic-reactivity', '1');
+    else voiceStage.style.setProperty('--mic-reactivity', '1');
+  },
+  onInterim(text) { if (voiceMode) voiceHint.textContent = text; },
+  onFinal: submitQuestion,
+  onActivity: setMicLevel,
+});
+
+function setMicLevel(level) {
+  voiceStage.style.setProperty('--mic-level', Math.min(1, Math.max(0, level)).toFixed(3));
+}
+
+function renderSoundSetting() {
+  interfaceSounds.setAttribute('aria-checked', String(voiceAudio.enabled));
+  interfaceSounds.querySelector('span').textContent = `Interface sounds ${voiceAudio.enabled ? 'on' : 'off'}`;
+}
 
 function updateRuntimeStatus(ready) {
   runtimeIndicator.dataset.state = ready ? 'ready' : 'error';
@@ -138,21 +184,31 @@ function updateVoice(state, status, hint = '') {
   listen.replaceChildren(icon(listening ? 'i-stop' : 'i-mic'));
   listen.setAttribute('aria-label', label);
   listen.title = label;
-  listen.disabled = state === 'thinking';
+  listen.disabled = state === 'thinking' || state === 'finishing';
 }
 
-function readyVoice(hint = Recognition ? 'Tap the mic to ask a question.' : 'Speech input is unavailable here. You can type below and hear the reply.') {
-  updateVoice('ready', 'Ready to talk', hint);
+function readyVoice(hint) {
+  if (voiceMode && autoListen && activeReply === null) {
+    voiceInput.start();
+    return;
+  }
+  updateVoice('ready', 'Microphone off', hint ?? 'Tap the mic to resume, or type below.');
 }
 
 function showVoice(open, restoreFocus = true) {
   voiceMode = open;
   if (open) {
-    if (activeReply === null) readyVoice();
+    autoListen = true;
+    void voiceAudio.prepare();
+    if (activeReply === null) { stopSpeech(); readyVoice(); }
     else updateVoice('thinking', 'Preparing a reply…', 'Your question is in the transcript.');
   } else {
+    autoListen = false;
     cancelListening();
     stopSpeech();
+    activationPulse?.cancel();
+    activationPulse = null;
+    voiceAudio.suspend();
   }
   renderView();
   if (open) {
@@ -179,11 +235,13 @@ function speak(text, button) {
   const wasPlaying = speech && speech.button === button;
   stopSpeech();
   if (wasPlaying) {
+    autoListen = false;
     if (voiceMode) readyVoice();
     return;
   }
   const voices = synthesis?.getVoices().filter((voice) => voice.localService && /^en(?:-|$)/i.test(voice.lang));
   if (!voices?.length) {
+    autoListen = false;
     if (voiceMode) readyVoice('This device hasn’t provided an English speech voice. The reply is in the transcript.');
     else if (button) button.textContent = 'Device voice unavailable';
     return;
@@ -203,6 +261,7 @@ function speak(text, button) {
     if (speech?.utterance !== utterance) return;
     setReplay(button, false);
     speech = null;
+    if (failed) autoListen = false;
     if (voiceMode && activeReply === null) readyVoice(failed ? 'Audio playback was interrupted. You can play the reply again.' : undefined);
   };
   utterance.onend = () => finish(false);
@@ -306,7 +365,7 @@ async function completeReply(job) {
     job.pending.className = 'reply-error';
     job.pending.textContent = error.message;
     if (!questionInput.value) questionInput.value = job.text;
-    if (voiceMode) readyVoice(error.message);
+    if (voiceMode) { autoListen = false; readyVoice(error.message); }
     log.scrollTop = log.scrollHeight;
     updateComposer();
     return;
@@ -338,68 +397,15 @@ function resetConversation() {
 }
 
 function cancelListening() {
-  if (!recognition) return;
-  const current = recognition;
-  recognition = null;
-  current.abort();
+  voiceInput.cancel();
+  setMicLevel(0);
 }
 
 function listenOnce() {
-  if (recognition) {
-    const current = recognition;
-    current.stop();
-    updateVoice('starting', 'Finishing dictation…');
-    listen.disabled = true;
-    return;
-  }
-  if (!Recognition) {
-    readyVoice('Speech input is unavailable in this browser. Type below to continue.');
-    return;
-  }
+  if (voiceInput.active) { autoListen = false; voiceInput.finish(); return; }
+  autoListen = true;
   stopSpeech();
-  const current = new Recognition();
-  recognition = current;
-  current.lang = 'en-US';
-  current.continuous = false;
-  current.interimResults = true;
-  current.onstart = () => {
-    if (recognition === current) updateVoice('listening', 'Listening…', 'Ask one interview question.');
-  };
-  current.onresult = (event) => {
-    if (recognition !== current) return;
-    const result = event.results[event.resultIndex];
-    const text = result[0].transcript.trim();
-    if (result.isFinal && text) {
-      recognition = null;
-      submitQuestion(text);
-    } else if (text) {
-      voiceHint.textContent = text;
-    }
-  };
-  current.onerror = ({ error }) => {
-    if (recognition !== current) return;
-    recognition = null;
-    const hints = {
-      'not-allowed': 'Microphone access was denied. You can allow it in your browser settings or type below.',
-      'service-not-allowed': 'Speech recognition is unavailable here. Type below to continue.',
-      'audio-capture': 'No microphone is available. Type below to continue.',
-      'no-speech': 'No speech was heard. Try the mic again or type below.',
-      network: 'The browser speech service is unavailable. Type below to continue.',
-    };
-    readyVoice(hints[error] ?? 'Dictation ended. You can try again or type below.');
-  };
-  current.onend = () => {
-    if (recognition !== current) return;
-    recognition = null;
-    readyVoice();
-  };
-  try {
-    updateVoice('starting', 'Opening the microphone…', 'Allow access if your browser asks.');
-    current.start();
-  } catch {
-    recognition = null;
-    readyVoice('The microphone couldn’t start. You can type below to continue.');
-  }
+  voiceInput.start();
 }
 
 form.addEventListener('submit', (event) => {
@@ -426,8 +432,11 @@ scrim.addEventListener('click', () => setSidebar(false));
 smallScreen.addEventListener('change', () => setSidebar(false));
 window.addEventListener('pagehide', () => {
   activeReply?.controller.abort();
+  autoListen = false;
   cancelListening();
   stopSpeech();
+  voiceAudio.dispose();
+  if (voiceMode) { voiceMode = false; renderView(); }
 });
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape' || document.querySelector('dialog[open]')) return;
@@ -449,7 +458,13 @@ for (const button of document.querySelectorAll('[data-open]')) {
 for (const dialog of document.querySelectorAll('dialog')) {
   dialog.querySelector('.dialog-close').addEventListener('click', () => dialog.close());
 }
+interfaceSounds.addEventListener('click', () => {
+  voiceAudio.setEnabled(!voiceAudio.enabled);
+  saveInterfaceSounds(soundStorage, voiceAudio.enabled);
+  renderSoundSetting();
+});
 
 synthesis?.getVoices();
+renderSoundSetting();
 updateComposer();
 startMotion(workspace, form);
