@@ -19,9 +19,9 @@ const voiceHint = $('#voice-hint');
 const effortPicker = createEffortPicker($('#effort-picker'));
 const replyIndicator = $('#reply-status');
 const runtimeIndicator = $('#runtime-status');
-const runtimeName = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname) ? 'Local runtime' : 'Cloudflare runtime';
+const runtimeName = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname) ? 'Local runtime' : 'Cloudflare Backend';
 const replyStates = {
-  live: { label: 'Live replies', state: 'ready' },
+  live: { label: 'OpenAI live', state: 'ready' },
   sample: { label: 'Preview mode', state: 'preview' },
   limited: { label: 'Replies paused', state: 'preview' },
   unavailable: { label: 'Replies unavailable', state: 'error' },
