@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createProfileBindings, extractRuntimeProfile, loadInterviewProfile, MAX_PROFILE_BYTES, PROFILE_PART_BYTES } from '../src/profile.js';
-import worker from '../src/worker.js';
+import worker from '../src/request-handler.js';
 
 test('profile parts round-trip Unicode and material beyond the old 8,000-character cutoff', async () => {
   const profile = 'Evidence 🧠 — café.\n'.repeat(800) + 'The final fact must survive.';

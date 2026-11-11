@@ -13,11 +13,12 @@
     const template = new DOMParser().parseFromString(await (await fetch('/index.html')).text(), 'text/html');
     document.body.replaceChildren(...template.body.childNodes);
     const contexts = new Set();
-    const previousSounds = localStorage.getItem('woisex100:interface-sounds');
+    const preferenceKeys = ['interface-sounds', 'playback', 'openai-voice', 'device-voice', 'speech-speed'];
+    const previousPreferences = preferenceKeys.map(name => ['woisex100:' + name, localStorage.getItem('woisex100:' + name)]);
     const test = window.__voiceTest = { scenario: 'success', chimes: 0, starts: 0, streams: [], states: [], latest: null, pending: null, NativeRecognition: window.SpeechRecognition ?? window.webkitSpeechRecognition };
     const controls = document.createElement('div');
     controls.style.cssText = 'position:fixed;z-index:10000;bottom:0;left:0;background:#fff;color:#111;padding:6px;font:12px sans-serif;display:flex;gap:6px;align-items:center';
-    controls.innerHTML = '<strong>Synthetic voice QA</strong><select aria-label="Test scenario"><option value="success">Success</option><option value="overlap">First words during chime</option><option value="denied">Permission denied</option><option value="service-error">Service failure</option><option value="pending">Pending permission</option><option value="duplicate">Duplicate events</option></select><button type="button">Speak test phrase</button><button type="button">Resolve permission</button>';
+    controls.innerHTML = '<strong>Synthetic voice QA</strong><select aria-label="Test scenario"><option value="success">Success</option><option value="overlap">First words during chime</option><option value="denied">Permission denied</option><option value="service-error">Service failure</option><option value="tts-error">Speech playback failure</option><option value="pending">Pending permission</option><option value="duplicate">Duplicate events</option></select><button type="button">Speak test phrase</button><button type="button">Resolve permission</button>';
     document.body.append(controls);
     controls.querySelector('select').onchange = event => { test.scenario = event.target.value; test.overlapSent = false; };
     const OriginalStart = AudioBufferSourceNode.prototype.start;
@@ -76,8 +77,15 @@
       return fakeStream();
     } });
     const normalFetch = window.fetch.bind(window);
-    window.fetch = (input, options) => String(input).endsWith('/api/reply')
-      ? Promise.resolve(Response.json({ text: 'Controlled playback test.' })) : normalFetch(input, options);
+    test.speechCalls = [];
+    window.fetch = (input, options) => {
+      if (String(input).endsWith('/api/reply')) return Promise.resolve(Response.json({ text: 'Controlled playback test.' }));
+      if (String(input).endsWith('/api/speech')) {
+        test.speechCalls.push(JSON.parse(options.body));
+        if (test.scenario === 'tts-error') return Promise.resolve(Response.json({ error: 'Controlled OpenAI speech failure.', code: 'generation_failed' }, { status: 503 }));
+      }
+      return normalFetch(input, options);
+    };
     controls.querySelectorAll('button')[0].onclick = () => test.latest?.speak();
     controls.querySelectorAll('button')[1].onclick = () => test.pending?.();
     new MutationObserver(() => {
@@ -87,8 +95,10 @@
     }).observe(document.querySelector('#voice-stage'), { attributes: true, attributeFilter: ['data-state', 'style'] });
     window.addEventListener('pagehide', () => {
       for (const context of contexts) context.close();
-      if (previousSounds === null) localStorage.removeItem('woisex100:interface-sounds');
-      else localStorage.setItem('woisex100:interface-sounds', previousSounds);
+      for (const [key, value] of previousPreferences) {
+        if (value === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, value);
+      }
     });
     await import('/src/app.js?controlled-voice-qa');
     test.checkFilters = async () => {

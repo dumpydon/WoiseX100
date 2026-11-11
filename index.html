@@ -68,14 +68,15 @@
           <div id="side-prompts" class="prompt-list"></div>
         </section>
         <div class="sidebar-bottom">
-          <label class="eyebrow" for="sidebar-voice">Voice tone</label>
-          <div class="select-wrap">
-            <svg class="icon tone-icon"><use href="#i-wave"/></svg>
-            <select id="sidebar-voice" data-voice-select>
-              <option value="sol">Sol style</option>
-              <option value="juniper">Juniper style</option>
-            </select>
-            <svg class="icon select-arrow"><use href="#i-chevron"/></svg>
+          <div class="speech-settings" data-speech-settings>
+            <label class="eyebrow" for="sidebar-playback">Playback</label>
+            <div class="select-wrap"><select id="sidebar-playback" data-playback-provider><option value="openai">Natural — OpenAI Voice</option><option value="device">Fast — Device Voice</option></select><svg class="icon select-arrow"><use href="#i-chevron"/></svg></div>
+            <label class="sr-only" for="sidebar-voice">Playback voice</label>
+            <div class="select-wrap"><select id="sidebar-voice" data-speech-voice></select><svg class="icon select-arrow"><use href="#i-chevron"/></svg></div>
+            <div class="speech-preview-row"><label class="sr-only" for="sidebar-speed">Speech speed</label><select id="sidebar-speed" data-speech-speed><option value="0.9">0.9× speed</option><option value="1" selected>1.0× speed</option><option value="1.1">1.1× speed</option></select><button type="button" class="voice-preview" data-voice-preview aria-pressed="false">Preview voice</button></div>
+            <p class="speech-helper" data-speech-helper>Preview a voice to choose your preferred sound.</p>
+            <p class="speech-helper speech-disclosure">AI-generated speech.</p>
+            <div class="speech-feedback" data-speech-feedback role="alert" hidden></div>
           </div>
           <button type="button" class="owner-button" data-open="owner-dialog"><svg class="icon"><use href="#i-lock"/></svg>Owner setup <svg class="icon owner-arrow"><use href="#i-up-right"/></svg></button>
         </div>
@@ -99,20 +100,24 @@
             </div>
             <p id="voice-status" class="voice-status" role="status">Opening the microphone…</p>
             <p id="voice-hint" class="voice-hint">Allow microphone access if your browser asks.</p>
-            <div class="voice-controls">
+            <div class="speech-settings console-speech-settings" data-speech-settings>
+              <label class="sr-only" for="console-playback">Voice playback provider</label>
+              <div class="select-wrap"><select id="console-playback" data-playback-provider><option value="openai">Natural — OpenAI Voice</option><option value="device">Fast — Device Voice</option></select><svg class="icon select-arrow"><use href="#i-chevron"/></svg></div>
+              <div class="voice-controls">
               <div class="select-wrap">
-                <label class="sr-only" for="console-voice">Voice mode tone</label>
-                <select id="console-voice" data-voice-select>
-                  <option value="sol">Sol style</option>
-                  <option value="juniper">Juniper style</option>
-                </select>
+                <label class="sr-only" for="console-voice">Voice mode playback voice</label>
+                <select id="console-voice" data-speech-voice></select>
                 <svg class="icon select-arrow"><use href="#i-chevron"/></svg>
               </div>
               <button type="button" id="listen" class="mic-button icon-button" aria-label="Start listening" title="Start listening"><svg class="icon"><use href="#i-mic"/></svg></button>
               <button type="button" id="end-voice" class="end-button icon-button" aria-label="Close voice mode" title="Close voice mode"><svg class="icon"><use href="#i-close"/></svg></button>
+              </div>
+              <div class="speech-preview-row"><label class="sr-only" for="console-speed">Voice mode speech speed</label><select id="console-speed" data-speech-speed><option value="0.9">0.9× speed</option><option value="1" selected>1.0× speed</option><option value="1.1">1.1× speed</option></select><button type="button" class="voice-preview" data-voice-preview aria-pressed="false">Preview voice</button></div>
+              <p class="speech-helper" data-speech-helper>AI-generated speech.</p>
+              <div class="speech-feedback" data-speech-feedback role="alert" hidden></div>
             </div>
             <button type="button" id="interface-sounds" class="interface-sounds" role="switch" aria-checked="true" title="Play the microphone-ready chime"><svg class="icon" aria-hidden="true"><use href="#i-sound"/></svg><span>Interface sounds on</span></button>
-            <p class="voice-note">Playback uses your device’s voices. Dictation may use your browser’s speech service.</p>
+            <p class="voice-note">AI-generated speech. Dictation may use your browser’s speech service.</p>
           </section>
 
           <section class="chat-panel" id="chat-panel" aria-labelledby="chat-title" hidden>
@@ -218,8 +223,9 @@
     <h2 id="privacy-title">Privacy Policy</h2>
     <p>WoiseX100 keeps the visible transcript in this tab’s memory. Refresh or start a new conversation to clear it.</p>
     <p>Live replies send your question and recent messages to OpenAI for processing.</p>
+    <p>When OpenAI Voice is selected, reply or preview text is sent to OpenAI to generate speech. Generated audio is temporarily cached privately for replay. Anonymous visitor and IP-based usage limits are stored server-side.</p>
     <p>Opening Voice mode requests microphone access and starts listening. Stop the mic or close voice mode to stop capture. Depending on your browser, dictation may send audio to its speech recognition service. You can use text at any time.</p>
-    <p>Your interface-sounds preference is saved on this device. It does not save your conversations.</p>
+    <p>Your playback, voice, speed, and interface-sounds preferences are saved on this device. These settings do not save your conversations.</p>
   </dialog>
 </body>
 </html>

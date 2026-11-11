@@ -169,10 +169,36 @@ export function createVoiceAudio({
     } catch { stopChime(); return { played: false, delay: 0 }; }
   }
 
+  function monitorPlayback(element, notify) {
+    if (context?.state !== 'running') return null;
+    const source = context.createMediaElementSource(element);
+    const analyser = context.createAnalyser(); analyser.fftSize = 512;
+    source.connect(analyser); analyser.connect(context.destination);
+    const samples = new Float32Array(analyser.fftSize);
+    let frame = null, disposed = false;
+    const monitor = {
+      start() {
+        if (frame !== null || disposed) return;
+        const tick = () => {
+          if (disposed) return;
+          analyser.getFloatTimeDomainData(samples);
+          const rms = Math.sqrt(samples.reduce((sum, value) => sum + value * value, 0) / samples.length);
+          notify(Math.min(1, Math.max(0, (rms - .004) / .15)));
+          frame = requestFrame(tick);
+        };
+        frame = requestFrame(tick);
+      },
+      pause() { if (frame !== null) cancelFrame(frame); frame = null; notify(null); },
+      dispose() { if (disposed) return; disposed = true; monitor.pause(); source.disconnect(); analyser.disconnect(); },
+    };
+    return monitor;
+  }
+
   return {
     prepare,
     attachMicrophone,
     playChime,
+    monitorPlayback,
     stopChime,
     get enabled() { return enabled; },
     setEnabled(value) { enabled = Boolean(value); if (!enabled) stopChime(); },

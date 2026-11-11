@@ -4,6 +4,9 @@ import { startMotion } from './motion.js';
 import { createVoiceAudio, readInterfaceSounds, saveInterfaceSounds } from './voice-audio.js';
 import { createVoiceInput } from './voice-input.js';
 import { createVoiceOrb } from './voice-orb.js';
+import { createSpeechSettings } from './speech-settings.js';
+import { createSpeechPlayback } from './speech-playback.js';
+import { PREVIEW_TEXT } from './speech-config.js';
 
 const $ = (selector) => document.querySelector(selector);
 const workspace = $('#interview');
@@ -30,16 +33,9 @@ const replyStates = {
   limited: { label: 'Replies paused', state: 'preview' },
   unavailable: { label: 'Replies unavailable', state: 'error' },
 };
-const toneSelectors = [...document.querySelectorAll('[data-voice-select]')];
 const smallScreen = matchMedia('(max-width: 680px)');
 const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
 const synthesis = window.speechSynthesis;
-const tones = {
-  sol: { voices: /samantha|karen|susan|sara/i, pitch: 1, rate: 0.96 },
-  juniper: { voices: /ava|tessa|zira|moira/i, pitch: 1.12, rate: 1.05 },
-};
-
-let tone = 'sol';
 let voiceMode = false;
 let speech = null;
 let activeReply = null;
@@ -83,6 +79,17 @@ const voiceInput = createVoiceInput({
   onFinal: submitQuestion,
   onActivity: setMicLevel,
 });
+const speechSettings = createSpeechSettings({
+  storage: soundStorage,
+  synthesis,
+  onChange() {
+    const wasPlaying = Boolean(speech);
+    stopSpeech();
+    for (const feedback of document.querySelectorAll('.speech-feedback')) { feedback.replaceChildren(); feedback.hidden = true; }
+    if (wasPlaying && voiceMode && activeReply === null) readyVoice();
+  },
+});
+const speechPlayback = createSpeechPlayback({ voiceAudio, synthesis, onLevel: level => voiceOrb.setOutputLevel(level) });
 
 function setMicLevel(level) {
   voiceStage.style.setProperty('--mic-level', Math.min(1, Math.max(0, level)).toFixed(3));
@@ -235,12 +242,39 @@ function setReplay(button, playing) {
 
 function stopSpeech() {
   if (!speech) return;
-  setReplay(speech.button, false);
+  setSpeechButton(speech.button, false, speech.preview);
   speech = null;
-  synthesis.cancel();
+  speechPlayback.cancel();
 }
 
-function speak(text, button) {
+function setSpeechButton(button, playing, preview) {
+  if (!button) return;
+  if (preview) {
+    button.setAttribute('aria-pressed', String(playing));
+    button.textContent = playing ? 'Stop preview' : 'Preview voice';
+  } else setReplay(button, playing);
+}
+
+function speechFailure(job, error) {
+  let feedback = job.button?.closest('[data-speech-settings]')?.querySelector('[data-speech-feedback]');
+  if (!feedback) {
+    const parent = job.button?.closest('.message') ?? form.parentElement;
+    feedback = parent.querySelector('.speech-feedback');
+    if (!feedback) { feedback = document.createElement('div'); feedback.className = 'speech-feedback'; feedback.setAttribute('role', 'alert'); parent.append(feedback); }
+  }
+  const message = document.createElement('p'); message.textContent = error.message;
+  const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = 'Retry audio';
+  retry.addEventListener('click', () => { feedback.hidden = true; autoListen = voiceMode; speak(job.text, job.button, job.preview); });
+  feedback.replaceChildren(message, retry);
+  if (job.settings.provider === 'openai') {
+    const device = document.createElement('button'); device.type = 'button'; device.textContent = 'Use Device Voice';
+    device.addEventListener('click', () => { speechSettings.useDevice(); autoListen = voiceMode; speak(job.text, job.button, job.preview); });
+    feedback.append(device);
+  }
+  feedback.hidden = false;
+}
+
+function speak(text, button, preview = false) {
   const wasPlaying = speech && speech.button === button;
   stopSpeech();
   if (wasPlaying) {
@@ -248,34 +282,27 @@ function speak(text, button) {
     if (voiceMode) readyVoice();
     return;
   }
-  const voices = synthesis?.getVoices().filter((voice) => voice.localService && /^en(?:-|$)/i.test(voice.lang));
-  if (!voices?.length) {
-    autoListen = false;
-    if (voiceMode) readyVoice('This device hasn’t provided an English speech voice. The reply is in the transcript.');
-    else if (button) button.textContent = 'Device voice unavailable';
-    return;
-  }
   cancelListening();
-  const preset = tones[tone];
-  const utterance = new SpeechSynthesisUtterance(text);
-  const defaultVoice = voices.find((voice) => voice.default) ?? voices[0];
-  utterance.voice = voices.find((voice) => preset.voices.test(voice.name)) ?? defaultVoice;
-  utterance.lang = utterance.voice.lang;
-  utterance.rate = preset.rate;
-  utterance.pitch = preset.pitch;
-  speech = { utterance, button };
-  setReplay(button, true);
-  if (voiceMode && activeReply === null) updateVoice('speaking', 'Speaking', 'Read along in the transcript below.');
-  const finish = (failed) => {
-    if (speech?.utterance !== utterance) return;
-    setReplay(button, false);
-    speech = null;
-    if (failed) autoListen = false;
-    if (voiceMode && activeReply === null) readyVoice(failed ? 'Audio playback was interrupted. You can play the reply again.' : undefined);
-  };
-  utterance.onend = () => finish(false);
-  utterance.onerror = () => finish(true);
-  synthesis.speak(utterance);
+  for (const feedback of document.querySelectorAll('.speech-feedback')) feedback.hidden = true;
+  const job = speech = { text, button, preview, settings: speechSettings.value };
+  setSpeechButton(button, true, preview);
+  void speechPlayback.play(text, job.settings, {
+    onState(state) {
+      if (speech !== job || !voiceMode || activeReply !== null) return;
+      updateVoice(state === 'speaking' ? 'speaking' : 'thinking', state === 'speaking' ? 'Speaking' : 'Preparing audio…', 'AI-generated speech. Read along in the transcript below.');
+    },
+    onEnd() {
+      if (speech !== job) return;
+      setSpeechButton(button, false, preview); speech = null;
+      if (voiceMode && activeReply === null) readyVoice();
+    },
+    onError(error) {
+      if (speech !== job) return;
+      setSpeechButton(button, false, preview); speech = null; autoListen = false;
+      speechFailure(job, error);
+      if (voiceMode && activeReply === null) readyVoice(error.message);
+    },
+  }, voiceMode);
 }
 
 function appendMessage(author, text, mode) {
@@ -455,13 +482,7 @@ document.addEventListener('keydown', (event) => {
   else if (voiceMode) showVoice(false);
 });
 
-for (const selector of toneSelectors) {
-  selector.addEventListener('change', () => {
-    tone = selector.value;
-    voiceStage.dataset.tone = tone;
-    for (const other of toneSelectors) other.value = tone;
-  });
-}
+for (const button of document.querySelectorAll('[data-voice-preview]')) button.addEventListener('click', () => speak(PREVIEW_TEXT, button, true));
 for (const button of document.querySelectorAll('[data-open]')) {
   button.addEventListener('click', () => document.getElementById(button.dataset.open).showModal());
 }

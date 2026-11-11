@@ -491,6 +491,21 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 .interface-sounds .icon { width: 14px; height: 14px; }
 .interface-sounds:hover { color: #ffe2ea; border-color: #573145; }
 .interface-sounds[aria-checked="false"] { opacity: .75; }
+.speech-settings { display: grid; gap: 7px; min-width: 0; }
+.speech-settings > .select-wrap select { width: 100%; min-width: 0; }
+.console-speech-settings { width: min(100%, 320px); }
+.console-speech-settings .voice-controls > .select-wrap { flex: 1; min-width: 0; }
+.console-speech-settings .voice-controls select { width: 100%; min-width: 0; }
+.console-speech-settings :is(.mic-button, .end-button) { flex: none; }
+.speech-preview-row { display: flex; align-items: center; gap: 7px; }
+.speech-preview-row select { flex: 1; min-width: 0; min-height: 32px; padding: 3px 7px; border: 1px solid #45303c; border-radius: 7px; background: #211a21; color: #ead8e2; font-size: 11px; }
+.voice-preview { flex: none; min-height: 32px; padding: 4px 9px; border: 1px solid #583442; border-radius: 7px; background: #2c1e27; color: #ffe4ed; font-size: 11px; }
+.voice-preview:disabled { opacity: .5; cursor: not-allowed; }
+.speech-helper { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.45; overflow-wrap: anywhere; }
+.speech-feedback { margin-top: 7px; padding: 9px; border: 1px solid #70404c; border-radius: 9px; background: #2d1b23; color: #ffccd3; text-align: start; }
+.speech-feedback p { margin: 0 0 7px; font-size: 12px; }
+.speech-feedback button { min-height: 30px; padding: 3px 7px; margin: 0 5px 3px 0; border: 1px solid #815165; border-radius: 6px; background: #432735; font-size: 11px; }
+.sidebar .speech-settings { margin-bottom: 6px; }
 
 .footer {
   --footer-width: 1120px;
