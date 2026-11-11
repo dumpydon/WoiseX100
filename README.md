@@ -35,6 +35,8 @@ The interview behavior in `src/interview-instructions.js` generates natural answ
 
 Run `npm test` for profile assembly, privacy-boundary, and reply transport checks. The synthetic scenarios in [the interview behavior checks](docs/interview-behavior-checks.md) provide a separate review rubric for actual model answers. A successful JavaScript check, transport fixture, or build does not establish that the model passes those scenarios.
 
+The [hosted verification record](docs/hosted-verification.md) documents production endpoint, browser, and model-response coverage. `scripts/evaluate-interview.mjs` supports a local or hosted target through `WOISE_EVAL_URL`, saves a checkpoint after every response, and keeps raw reports private.
+
 ## Design references
 
 - [DayPilot](https://github.com/dumpydon/daypilot) for the workspace and animated signal rails.
