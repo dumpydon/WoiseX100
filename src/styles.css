@@ -247,11 +247,22 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 .effort-panel fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .effort-panel legend { padding: 0; font-size: 13px; font-weight: 650; }
 .effort-panel p { margin: 7px 0 0; color: var(--muted); font-size: 11px; }
-.effort-slider { --position: 50%; --max-position: 90%; --particle-duration: 3s; position: relative; margin-top: 12px; }
-.effort-slider[data-level="0"] { --position: 10%; }
-.effort-slider[data-level="1"] { --position: 30%; --particle-duration: 4s; }
-.effort-slider[data-level="3"] { --position: 70%; --particle-duration: 2.3s; }
-.effort-slider[data-level="4"] { --position: var(--max-position); --particle-duration: 2s; }
+.effort-slider {
+  --position: 50%;
+  --max-position: 90%;
+  /* Fixed travel distances: dividing the old periods by 2.5 multiplies every speed gap by 2.5. */
+  --particle-duration: 1.2s;
+  --particle-layer-2: 1;
+  --particle-layer-3: 1;
+  --particle-layer-4: 0;
+  --particle-layer-5: 0;
+  position: relative;
+  margin-top: 12px;
+}
+.effort-slider[data-level="0"] { --position: 10%; --particle-layer-2: 0; --particle-layer-3: 0; }
+.effort-slider[data-level="1"] { --position: 30%; --particle-duration: 1.6s; --particle-layer-3: 0; }
+.effort-slider[data-level="3"] { --position: 70%; --particle-duration: .92s; --particle-layer-4: 1; }
+.effort-slider[data-level="4"] { --position: var(--max-position); --particle-duration: .8s; --particle-layer-4: 1; --particle-layer-5: 1; }
 :root:has(.effort-slider[data-dragging]),
 :root:has(.effort-slider[data-dragging]) * { cursor: grabbing; }
 .effort-rail {
@@ -286,12 +297,16 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
   position: absolute;
   inset: 0;
   opacity: .7;
-  background: radial-gradient(circle, #fff6fb 0 1px, transparent 1.6px) 0 3px / 21px 9px repeat-x,
-              radial-gradient(circle, #ffdce3 0 .7px, transparent 1.4px) 0 14px / 17px 7px repeat-x;
+  /* One sparse static row at Low; add one staggered row at each effort level. */
+  background: radial-gradient(circle, #fff6fb 0 1px, transparent 1.6px) -7px 3px / 21px 9px repeat-x,
+              radial-gradient(circle, rgb(255 220 227 / var(--particle-layer-2)) 0 .7px, transparent 1.4px) 0 14px / 17px 7px repeat-x,
+              radial-gradient(circle, rgb(255 246 251 / var(--particle-layer-3)) 0 .8px, transparent 1.4px) 13px -2px / 21px 8px repeat-x,
+              radial-gradient(circle, rgb(255 220 227 / var(--particle-layer-4)) 0 .8px, transparent 1.4px) -12px 8px / 17px 8px repeat-x,
+              radial-gradient(circle, rgb(255 246 251 / var(--particle-layer-5)) 0 .8px, transparent 1.4px) 7px 18px / 21px 8px repeat-x;
   animation: effort-particles var(--particle-duration) linear infinite;
 }
 .effort-slider[data-level="0"] .effort-fill::before { animation: none; }
-@keyframes effort-particles { to { background-position: 42px 3px, 17px 14px; } }
+@keyframes effort-particles { to { background-position: 35px 3px, 17px 14px, 55px -2px, 5px 8px, 49px 18px; } }
 .effort-stops {
   position: absolute;
   inset: 0;
