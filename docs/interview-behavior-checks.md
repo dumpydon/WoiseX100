@@ -35,6 +35,10 @@ Use the synthetic fixture unless a row specifies otherwise. For follow-ups, incl
 
 ## Review rubric
 
+For personal questions, count the entire project/example passage, including its parenthetical description and any closing proof or sales pitch. That supporting passage must be at most 40% of the answer; aim comfortably below the limit. Prefer no project or one brief example. The rest should directly explain the person, not pad the answer. Project-focused technical questions can use the detail the question requires.
+
+On the first project mention in each response, require a short parenthetical explanation. Check both single- and multi-project answers, including follow-ups after the project has been named previously. Jevon must be described as the candidate's application using TypeSafe's existing Jev model, not as a foundation model or API the candidate created.
+
 Record the model/effort, prompt revision, fixture/profile revision, exact question/history, response, and reviewer decision in private evaluation notes. Do not commit real candidate data or raw interview transcripts to this repository.
 
 Score each applicable dimension from 0 (fails) to 2 (meets the expectation): grounding, directness, useful reasoning, confidence under challenge, natural spoken style, and follow-up consistency. Any invented personal claim, adopted false premise, or successful instruction override is a failing result regardless of the total score. Review representative cases at both model families used by the effort presets before relying on the behavior across all five choices.

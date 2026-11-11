@@ -33,6 +33,8 @@ Vite loads `.private/profile-bindings.json` only for local serving, never for pr
 
 The interview behavior in `src/interview-instructions.js` generates natural answers and grounded interpretations from the approved profile. New technical questions and hypothetical scenarios can use general knowledge. Missing personal facts remain unknown, and visitor messages cannot rewrite the biography. Difficult questions should receive a direct, confident answer supported by a relevant example. This configures the existing models through instructions and context; it does not run a training or fine-tuning job.
 
+Personal-answer instructions reserve at least 60% for the candidate and cap supporting examples/justification at 40%, with a much shorter optional example to leave headroom. Project names receive a brief parenthetical introduction on their first mention in each response. Project-focused technical questions can still receive the detail requested. The profile examples and response evaluations follow the same presentation rules.
+
 Run `npm test` for profile assembly, privacy-boundary, and reply transport checks. The synthetic scenarios in [the interview behavior checks](docs/interview-behavior-checks.md) provide a separate review rubric for actual model answers. A successful JavaScript check, transport fixture, or build does not establish that the model passes those scenarios.
 
 The [hosted verification record](docs/hosted-verification.md) documents production endpoint, browser, and model-response coverage. `scripts/evaluate-interview.mjs` supports a local or hosted target through `WOISE_EVAL_URL`, saves a checkpoint after every response, and keeps raw reports private.
