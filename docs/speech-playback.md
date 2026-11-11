@@ -17,7 +17,7 @@ An OpenAI error offers **Retry audio** and **Use Device Voice**. The provider ch
 - Long replies are split at word boundaries into at most 4,000 Unicode characters per request. Identical normalized text, model, voice, and speed share one content hash and one generation job.
 - `SpeechJob` is a SQLite Durable Object per content hash. It deduplicates in-flight generation, streams audio to the caller, and keeps bounded audio chunks for 24 hours by default. A persisted generation lease prevents an immediate duplicate after an actor restart.
 - `SpeechQuota` is a small SQLite Durable Object per visitor, hashed IP, or global budget. Reservations prevent concurrent requests from overspending. It does not handle audio.
-- The browser uses MediaSource MP3 streaming where supported and buffered Blob playback elsewhere. Its bounded in-memory cache supports replay without another generation. Server cache hits also do not incur a new TTS charge. Both caches remain private to the application; there is no public audio-object URL or raw-text log.
+- The browser uses MediaSource MP3 streaming where supported and buffered playback elsewhere. Embedded browsers that reject blob URLs use a signed, same-origin HTTP URL for the same prepared audio. That cache-only route verifies the signed visitor cookie and an expiring HMAC token; it cannot trigger generation or expose the source text. Its bounded in-memory cache supports replay without another generation. Server cache hits and HTTP delivery also do not incur a new TTS charge. Both caches remain private to the application; there is no public audio-object URL or raw-text log.
 
 ## Usage limits and cost estimates
 

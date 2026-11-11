@@ -121,7 +121,7 @@ async function answer(request, url, env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname === '/api/speech' || url.pathname === '/api/speech/config') return speechGateway(request, env, readBody);
+    if (url.pathname === '/api/speech' || url.pathname === '/api/speech/config' || url.pathname.startsWith('/api/speech/audio/')) return speechGateway(request, env, readBody);
     if (url.pathname === '/api/status') {
       if (request.method !== 'GET') return json({ error: 'Use GET to check status.' }, 405, { Allow: 'GET' });
       let profile = 'missing';

@@ -42,6 +42,14 @@ export class SpeechJob extends DurableObject {
   audioHeaders(cache, characters) {
     return { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'X-Speech-Cache': cache, 'X-Speech-Characters': String(characters) };
   }
+  async cachedAudio() {
+    const job = await this.ctx.storage.get('job');
+    if (job?.state !== 'ready' || job.expires <= Date.now()) return speechError('Prepared audio expired. Retry audio to prepare it again.', 'audio_expired', 410);
+    const response = this.audioResponse(job, 'HIT');
+    const headers = new Headers(response.headers);
+    headers.set('Content-Length', String(job.bytes));
+    return new Response(response.body, { headers });
+  }
   async synthesize(data) {
     const input = validateSpeechInput({ text: data.text, voice: data.voice, speed: data.speed });
     if (!input || !/^[a-f0-9]{32}$/.test(data.userId) || !/^[a-f0-9]{64}$/.test(data.ipId) || await speechHash(input) !== data.hash) return speechError('Invalid speech request.', 'invalid_input', 400);

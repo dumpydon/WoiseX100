@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { SpeechLedger } from '../src/speech-ledger.js';
 import { validateSpeechInput, splitSpeechText, characterCount, speechHash } from '../src/speech-config.js';
-import { speechSession } from '../src/speech-session.js';
+import { speechSession, speechPlaybackUrl, validSpeechPlaybackUrl } from '../src/speech-session.js';
 import { ttsOneProvider } from '../src/tts-one-provider.js';
 
 test('character reservations enforce concurrent budgets, survive reconstruction, and reset daily', () => {
@@ -58,6 +58,13 @@ test('anonymous speech cookies are signed and tampering creates a fresh visitor'
   const forged = cookie.replace(/=[^.]+/, '=' + '0'.repeat(32));
   const changed = await speechSession(new Request('https://example.com/api/speech', { headers: { Cookie: forged } }), env);
   assert.notEqual(changed.id, first.id);
+  const hash = 'a'.repeat(64);
+  const playback = new Request(new URL(await speechPlaybackUrl(env, first.id, hash, 60), 'https://example.com'));
+  assert.equal(await validSpeechPlaybackUrl(playback, env, first.id, hash), true);
+  assert.equal(await validSpeechPlaybackUrl(playback, env, changed.id, hash), false);
+  assert.equal(await validSpeechPlaybackUrl(playback, env, first.id, 'b'.repeat(64)), false);
+  const expired = new URL(playback.url); expired.searchParams.set('expires', '1000000000');
+  assert.equal(await validSpeechPlaybackUrl(new Request(expired), env, first.id, hash), false);
 });
 
 test('TTS-1 retirement stops generation without migrating to another model', () => {

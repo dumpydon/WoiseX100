@@ -21,6 +21,12 @@
     controls.innerHTML = '<strong>Synthetic voice QA</strong><select aria-label="Test scenario"><option value="success">Success</option><option value="overlap">First words during chime</option><option value="denied">Permission denied</option><option value="service-error">Service failure</option><option value="tts-error">Speech playback failure</option><option value="pending">Pending permission</option><option value="duplicate">Duplicate events</option></select><button type="button">Speak test phrase</button><button type="button">Resolve permission</button>';
     document.body.append(controls);
     controls.querySelector('select').onchange = event => { test.scenario = event.target.value; test.overlapSent = false; };
+    controls.querySelector('select').append(new Option('Embedded browser: blob URLs unavailable', 'blob-blocked'));
+    const originalPlay = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function (...args) {
+      if (test.scenario === 'blob-blocked' && this.src.startsWith('blob:')) return Promise.reject(new DOMException('Controlled blob URL rejection', 'NotSupportedError'));
+      return originalPlay.apply(this, args);
+    };
     const OriginalStart = AudioBufferSourceNode.prototype.start;
     AudioBufferSourceNode.prototype.start = function (...args) {
       if (!(this.context instanceof OfflineAudioContext) && Math.abs((this.buffer?.duration ?? 0) - .4) < .001) { test.chimes += 1; test.cueAt = performance.now(); }
