@@ -17,6 +17,15 @@ const listen = $('#listen');
 const voiceStatus = $('#voice-status');
 const voiceHint = $('#voice-hint');
 const effortPicker = createEffortPicker($('#effort-picker'));
+const replyIndicator = $('#reply-status');
+const runtimeIndicator = $('#runtime-status');
+const runtimeName = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname) ? 'Local runtime' : 'Cloudflare runtime';
+const replyStates = {
+  live: { label: 'Live replies', state: 'ready' },
+  sample: { label: 'Preview mode', state: 'preview' },
+  limited: { label: 'Replies paused', state: 'preview' },
+  unavailable: { label: 'Replies unavailable', state: 'error' },
+};
 const toneSelectors = [...document.querySelectorAll('[data-voice-select]')];
 const smallScreen = matchMedia('(max-width: 680px)');
 const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
@@ -33,21 +42,32 @@ let speech = null;
 let activeReply = null;
 let history = [];
 
+function updateRuntimeStatus(ready) {
+  runtimeIndicator.dataset.state = ready ? 'ready' : 'error';
+  $('#runtime-mode').textContent = ready ? runtimeName : 'Runtime unavailable';
+}
+
+function updateReplyStatus(mode) {
+  const { label, state } = replyStates[mode];
+  replyIndicator.dataset.state = state;
+  $('#app-mode').textContent = label;
+  $('#reply-mode').textContent = mode === 'sample' ? 'Sample replies' : label;
+}
+
 const connection = fetch('/api/status', { cache: 'no-store', signal: AbortSignal.timeout(6000) })
   .then(async (response) => {
     if (!response.ok) throw new Error('Status unavailable');
     const status = await response.json();
     if (typeof status.live !== 'boolean') throw new Error('Invalid status');
     effortPicker.configure(status.live);
-    if (status.live) {
-      $('#app-mode').textContent = 'Live';
-      $('#reply-mode').textContent = 'Live replies';
-    }
-    return status.live ? 'live' : 'sample';
+    const mode = status.live ? 'live' : 'sample';
+    updateRuntimeStatus(true);
+    updateReplyStatus(mode);
+    return mode;
   })
   .catch(() => {
-    $('#app-mode').textContent = 'Unavailable';
-    $('#reply-mode').textContent = 'Replies unavailable';
+    updateRuntimeStatus(false);
+    updateReplyStatus('unavailable');
     return 'unavailable';
   });
 
@@ -245,11 +265,16 @@ async function fetchReply(messages, effort, signal) {
       signal,
     });
   } catch {
-    throw new Error('Couldn’t reach WoiseX100. Try again.');
+    const error = new Error('Couldn’t reach WoiseX100. Try again.');
+    error.runtimeAvailable = false;
+    throw error;
   }
   const data = await response.json().catch(() => null);
   if (!response.ok || typeof data?.text !== 'string') {
-    throw new Error(data?.error ?? 'The reply couldn’t load. Try again.');
+    const error = new Error(data?.error ?? 'The reply couldn’t load. Try again.');
+    error.runtimeAvailable = true;
+    error.status = response.status;
+    throw error;
   }
   return data.text;
 }
@@ -268,6 +293,10 @@ async function completeReply(job) {
   } catch (error) {
     if (activeReply !== job) return;
     activeReply = null;
+    if (mode === 'live') {
+      updateReplyStatus(error.status === 429 ? 'limited' : 'unavailable');
+      updateRuntimeStatus(error.runtimeAvailable);
+    }
     job.pending.className = 'reply-error';
     job.pending.textContent = error.message;
     if (!questionInput.value) questionInput.value = job.text;
@@ -279,6 +308,8 @@ async function completeReply(job) {
   if (activeReply !== job) return;
   activeReply = null;
   job.pending.remove();
+  updateRuntimeStatus(true);
+  updateReplyStatus(mode);
   history = [...history, user, { role: 'assistant', content: response.slice(0, 1200) }].slice(-6);
   const replay = appendMessage('agent', response, mode);
   log.scrollTop = log.scrollHeight;

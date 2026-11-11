@@ -5,7 +5,13 @@ const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
 function rotateHeadline() {
   const accent = document.querySelector('#headline-accent');
-  const phrases = [accent.textContent, 'Explore my work.', 'See how I think.'];
+  const phrases = [
+    accent.textContent,
+    'Built for 100x.',
+    'Explore my work.',
+    'Built for 100x.',
+    'See how I think.',
+  ];
   let index = 0;
   setInterval(() => {
     if (reducedMotion.matches || accent.offsetWidth === 0 || document.hidden) return;

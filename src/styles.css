@@ -62,7 +62,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
   border-bottom: 1px solid var(--line);
   background: #131315;
 }
-.header-left, .header-right, .brand, .preview-badge, .header-link { display: flex; align-items: center; }
+.header-left, .header-right, .brand, .header-link { display: flex; align-items: center; }
 .header-left { gap: 12px; }
 .brand { gap: 11px; line-height: 1.15; }
 .brand-icon {
@@ -80,19 +80,25 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 .brand strong span { color: var(--accent-text); }
 .brand small { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; line-height: 1.3; }
 .header-right { gap: 22px; }
-.preview-badge {
-  gap: 8px;
-  padding: 5px 10px;
-  border: 1px solid #40242e;
-  border-radius: 20px;
-  color: #ffb5c2;
-  background: #24171e;
+.runtime-status { display: flex; align-items: center; gap: 16px; }
+.runtime-indicator {
+  --signal-color: #817b85;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
   font-size: 11px;
   white-space: nowrap;
 }
+.runtime-indicator::before { content: ''; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--signal-color); }
+.runtime-indicator[data-state="ready"] { --signal-color: #57d692; }
+.runtime-indicator[data-state="ready"]::before { box-shadow: 0 0 8px #57d69244; }
+.runtime-indicator[data-state="preview"] { --signal-color: #eab05f; }
+.runtime-indicator[data-state="error"] { --signal-color: var(--accent-text); }
 .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 9px #ff506e77; flex: none; }
 .header-link { gap: 5px; color: var(--muted); font-size: 12px; }
 .header-link .icon { width: 13px; height: 13px; }
+.header-link .github-mark { width: 16px; height: 16px; fill: currentColor; stroke: none; }
 .header-link:hover { color: var(--text); }
 
 .layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); min-height: max(635px, calc(100svh - var(--header) - 62px)); }
@@ -452,14 +458,27 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 .end-button { border: 1px solid #573145; background: #281a24; }
 .voice-note { max-width: 40ch; margin: 8px 0 0; color: var(--muted); font-size: 11px; }
 
-.assessment-credit { min-height: 62px; display: flex; align-items: center; padding: 10px 28px; border-top: 1px solid var(--line); background: #131315; color: var(--muted); font-size: 11px; }
+.footer {
+  --footer-width: 1120px;
+  min-height: 62px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 9px 18px;
+  padding: 10px max(14px, calc((100% - var(--footer-width)) / 2 - 20px)) 10px 28px;
+  border-top: 1px solid var(--line);
+  background: #131315;
+  color: var(--muted);
+  font-size: 11px;
+}
+.assessment-credit { flex: none; }
 .assessment-credit strong { color: #e6dfe5; font-weight: 600; }
 .footer-separator { display: inline-block; margin: 0 9px; color: #9b6171; }
-.footer-strip { padding: 24px 34px 26px; border-top: 1px solid #292a29; background: var(--bg); color: #737b75; font-size: 16px; line-height: 24px; }
-.footer-inner { max-width: 1120px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 18px; transform: translateX(20px); }
-.footer-inner p { margin: 0; }
-.footer-links { display: flex; align-items: center; gap: 10px; flex: none; }
-.footer-links button { background: transparent; border: 0; padding: 0; color: #8a938c; transition: color 180ms ease; }
+.footer-inner { flex: 0 1 var(--footer-width); min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 18px; color: #737b75; font-size: 16px; line-height: 24px; }
+.footer-copyright { display: flex; align-items: center; flex-wrap: wrap; gap: 0 4px; margin: 0; }
+.footer-mark { flex: none; width: 20px; height: 20px; background: var(--accent-text); mask: url('/openai-blossom-coral.png') center / 172% no-repeat; }
+.footer-links { display: flex; align-items: center; flex: none; gap: 10px; }
+.footer-links button { min-height: 24px; background: transparent; border: 0; padding: 0; color: #8a938c; transition: color 180ms ease; }
 .footer-links button:hover { color: #d7ded8; }
 .curtain {
   position: fixed;
@@ -506,10 +525,13 @@ dialog p { color: #d0c2cd; font-size: 14px; }
   .curtain-inner { width: 90%; height: 204px; }
 }
 
+@media (max-width: 900px) {
+  .footer { flex-wrap: wrap; padding: 11px 16px; }
+  .footer-inner { flex: 1 1 100%; flex-wrap: wrap; gap: 9px 18px; }
+}
+
 @media (max-width: 700px) {
   .signal-field { display: none; }
-  .footer-strip { padding: 20px 18px 22px; }
-  .footer-inner { align-items: flex-start; flex-direction: column; gap: 9px; transform: none; }
 }
 
 @media (max-width: 680px) {
@@ -519,7 +541,9 @@ dialog p { color: #d0c2cd; font-size: 14px; }
   .brand-icon { width: 32px; height: 32px; border-radius: 8px; }
   .brand strong { font-size: 15px; }
   .brand small { font-size: 10px; }
-  .preview-badge { font-size: 10px; padding-inline: 8px; gap: 5px; }
+  .runtime-status { flex-direction: column; align-items: flex-start; gap: 3px; }
+  .runtime-indicator { font-size: 10px; gap: 5px; }
+  .runtime-indicator::before { width: 5px; height: 5px; }
   .header-link { display: none; }
   .mobile-menu, .close-sidebar { display: inline-flex !important; }
   .mobile-menu { width: 36px; height: 36px; background: transparent; }
@@ -535,14 +559,13 @@ dialog p { color: #d0c2cd; font-size: 14px; }
   .composer textarea { font-size: 16px; }
   .suggestions { margin-top: 19px; }
   .workspace-meta { margin-inline: 16px; padding-bottom: 12px; }
-  .assessment-credit { padding: 11px 16px; align-items: flex-start; }
   .voice-stage { margin-bottom: 8px; }
   .chat-log { max-height: 44svh; }
   .prompt-button { min-height: 43px; }
 }
 
 @media (max-width: 375px) {
-  .preview-badge { font-size: 9px; }
+  .runtime-indicator { font-size: 9px; }
   .topbar { padding-inline: 9px; }
   .header-left { gap: 5px; }
   .workspace-meta { font-size: 9px; }
