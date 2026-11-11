@@ -3,6 +3,7 @@ import { previewReply, questions } from './preview.js';
 import { startMotion } from './motion.js';
 import { createVoiceAudio, readInterfaceSounds, saveInterfaceSounds } from './voice-audio.js';
 import { createVoiceInput } from './voice-input.js';
+import { createVoiceOrb } from './voice-orb.js';
 
 const $ = (selector) => document.querySelector(selector);
 const workspace = $('#interview');
@@ -45,6 +46,7 @@ let activeReply = null;
 let history = [];
 let autoListen = false;
 let activationPulse = null;
+const voiceOrb = createVoiceOrb(voiceStage);
 let soundStorage;
 try { soundStorage = window.localStorage; } catch { /* Keep the sound setting in memory. */ }
 const voiceAudio = createVoiceAudio({ enabled: readInterfaceSounds(soundStorage), onLevel: setMicLevel });
@@ -57,6 +59,7 @@ const voiceInput = createVoiceInput({
       autoListen = false;
       activationPulse?.cancel();
       activationPulse = null;
+      voiceOrb.setActivation(false);
       voiceStage.style.setProperty('--mic-reactivity', '1');
     }
     updateVoice(state, status, hint);
@@ -64,6 +67,7 @@ const voiceInput = createVoiceInput({
   onActivation({ delay }) {
     if (!voiceMode) return;
     activationPulse?.cancel();
+    voiceOrb.setActivation(true);
     voiceStage.style.setProperty('--mic-reactivity', '0');
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     activationPulse = $('.orb-activation').animate?.([
@@ -71,8 +75,9 @@ const voiceInput = createVoiceInput({
       { transform: reduce ? 'scale(1)' : 'scale(1.045)', filter: 'brightness(1.13)', offset: .42 },
       { transform: 'scale(1)', filter: 'brightness(1)' },
     ], { duration: 420, delay: delay * 1000, easing: 'ease-in-out' });
-    if (activationPulse) activationPulse.onfinish = () => voiceStage.style.setProperty('--mic-reactivity', '1');
-    else voiceStage.style.setProperty('--mic-reactivity', '1');
+    const finishPulse = () => { voiceStage.style.setProperty('--mic-reactivity', '1'); voiceOrb.setActivation(false); };
+    if (activationPulse) activationPulse.onfinish = finishPulse;
+    else finishPulse();
   },
   onInterim(text) { if (voiceMode) voiceHint.textContent = text; },
   onFinal: submitQuestion,
@@ -81,6 +86,7 @@ const voiceInput = createVoiceInput({
 
 function setMicLevel(level) {
   voiceStage.style.setProperty('--mic-level', Math.min(1, Math.max(0, level)).toFixed(3));
+  voiceOrb.setMicLevel(level);
 }
 
 function renderSoundSetting() {
@@ -177,6 +183,7 @@ function updateComposer() {
 
 function updateVoice(state, status, hint = '') {
   voiceStage.dataset.state = state;
+  voiceOrb.setState(state);
   voiceStatus.textContent = status;
   voiceHint.textContent = hint;
   const listening = state === 'listening' || state === 'starting';
@@ -197,6 +204,8 @@ function readyVoice(hint) {
 
 function showVoice(open, restoreFocus = true) {
   voiceMode = open;
+  voiceOrb.setActive(open);
+  if (open) voiceOrb.setState(activeReply ? 'thinking' : 'starting');
   if (open) {
     autoListen = true;
     void voiceAudio.prepare();
@@ -436,6 +445,7 @@ window.addEventListener('pagehide', () => {
   cancelListening();
   stopSpeech();
   voiceAudio.dispose();
+  voiceOrb.setActive(false);
   if (voiceMode) { voiceMode = false; renderView(); }
 });
 document.addEventListener('keydown', (event) => {

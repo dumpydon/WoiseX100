@@ -93,7 +93,10 @@
 
           <section class="voice-stage" id="voice-stage" aria-labelledby="voice-heading" data-state="ready" hidden>
             <h1 id="voice-heading" class="eyebrow"><svg class="icon"><use href="#i-wave"/></svg> Voice mode</h1>
-            <div class="orb-frame" aria-hidden="true"><span class="orb-motion"><span class="orb-activation"><span class="orb"></span></span></span></div>
+            <div class="orb-frame" aria-hidden="true">
+              <svg class="orb-geometry" width="0" height="0" focusable="false"><defs><clipPath id="orb-clip" clipPathUnits="objectBoundingBox"><path id="orb-contour" d="M .5 .02 C .765 .02 .98 .235 .98 .5 S .765 .98 .5 .98 .02 .765 .02 .5 .235 .02 .5 .02 Z"/></clipPath></defs></svg>
+              <span class="orb-motion"><span class="orb-halo"></span><span class="orb-activation"><span class="orb"><span class="orb-region orb-region-cream"></span><span class="orb-region orb-region-coral"></span><span class="orb-region orb-region-blush"></span><span class="orb-region orb-region-light"></span></span></span></span>
+            </div>
             <p id="voice-status" class="voice-status" role="status">Opening the microphone…</p>
             <p id="voice-hint" class="voice-hint">Allow microphone access if your browser asks.</p>
             <div class="voice-controls">
