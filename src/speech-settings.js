@@ -6,7 +6,7 @@ export function createSpeechSettings({ storage, synthesis, onChange = () => {} }
   const save = (key, value) => { try { storage?.setItem('woisex100:' + key, value); } catch { /* Session preference remains usable. */ } };
   let provider = read('playback') === 'device' ? 'device' : 'openai';
   const savedVoice = read('openai-voice');
-  let voice = [...OPENAI_VOICES, ...UNAVAILABLE_VOICES].includes(savedVoice) ? savedVoice : 'coral';
+  let voice = [...OPENAI_VOICES, ...UNAVAILABLE_VOICES].includes(savedVoice) ? savedVoice : 'nova';
   let deviceVoice = read('device-voice') ?? '';
   let speed = SPEECH_SPEEDS.includes(Number(read('speech-speed'))) ? Number(read('speech-speed')) : 1;
   const groups = [...document.querySelectorAll('[data-speech-settings]')];
@@ -21,7 +21,7 @@ export function createSpeechSettings({ storage, synthesis, onChange = () => {} }
       select.replaceChildren();
       if (provider === 'openai') {
         for (const value of [...OPENAI_VOICES, ...UNAVAILABLE_VOICES]) {
-          const option = new Option(title(value) + (UNAVAILABLE_VOICES.includes(value) ? ' — Unavailable with TTS-1' : ''), value);
+          const option = new Option(title(value) + (['echo', 'ash', 'onyx'].includes(value) ? ' (male)' : '') + (UNAVAILABLE_VOICES.includes(value) ? ' — Unavailable with TTS-1' : ''), value);
           option.disabled = UNAVAILABLE_VOICES.includes(value); select.append(option);
         }
         select.value = voice;

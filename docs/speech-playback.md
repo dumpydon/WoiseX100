@@ -2,7 +2,7 @@
 
 ## User behavior
 
-The default provider is **Natural — OpenAI Voice**, using `tts-1` and initially Coral. Alloy, Ash, Coral, Echo, Fable, Onyx, Nova, Sage, and Shimmer are enabled. Ballad, Verse, Marin, and Cedar are visible but disabled with “Unavailable with TTS-1.” Sol and Juniper are not represented as API voices.
+The default provider is **Natural — OpenAI Voice**, using `tts-1` and initially Nova. Enabled voices appear in this order: Nova, Alloy, Coral, Fable, Sage, Shimmer, Echo (male), Ash (male), and Onyx (male). Ballad, Verse, Marin, and Cedar are visible but disabled with “Unavailable with TTS-1.” Sol and Juniper are not represented as API voices. A previously saved voice choice is preserved.
 
 The provider, OpenAI voice, device voice, and conservative speed preference (0.9×, 1.0×, or 1.1×) are stored separately on the device. **Fast — Device Voice** lists actual browser voices. A missing saved voice produces a recoverable error instead of silently changing the voice. Previews use the same routing and accounting as assistant replies. All playback is labeled AI-generated.
 

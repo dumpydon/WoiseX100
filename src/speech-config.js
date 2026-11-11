@@ -1,6 +1,6 @@
 export const SPEECH_MODEL = 'tts-1';
 export const SPEECH_SHUTDOWN = '2027-01-06';
-export const OPENAI_VOICES = ['alloy', 'ash', 'coral', 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer'];
+export const OPENAI_VOICES = ['nova', 'alloy', 'coral', 'fable', 'sage', 'shimmer', 'echo', 'ash', 'onyx'];
 export const UNAVAILABLE_VOICES = ['ballad', 'verse', 'marin', 'cedar'];
 export const SPEECH_SPEEDS = [.9, 1, 1.1];
 export const MAX_SPEECH_CHARACTERS = 4000;
