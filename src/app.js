@@ -59,6 +59,11 @@ const connection = fetch('/api/status', { cache: 'no-store', signal: AbortSignal
     if (!response.ok) throw new Error('Status unavailable');
     const status = await response.json();
     if (typeof status.live !== 'boolean') throw new Error('Invalid status');
+    $('#owner-profile-status').textContent = status.profile === 'ready'
+      ? 'Connected. Answers can draw on Piyush’s background and work.'
+      : status.profile === 'unavailable'
+        ? 'Temporarily unavailable. The owner needs to check the profile.'
+        : 'The owner has not connected a profile yet.';
     effortPicker.configure(status.live);
     const mode = status.live ? 'live' : 'sample';
     updateRuntimeStatus(true);
@@ -66,6 +71,7 @@ const connection = fetch('/api/status', { cache: 'no-store', signal: AbortSignal
     return mode;
   })
   .catch(() => {
+    $('#owner-profile-status').textContent = 'The profile status could not be checked. Refresh to reconnect.';
     updateRuntimeStatus(false);
     updateReplyStatus('unavailable');
     return 'unavailable';

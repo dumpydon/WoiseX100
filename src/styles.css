@@ -474,12 +474,17 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 .assessment-credit { flex: none; }
 .assessment-credit strong { color: #e6dfe5; font-weight: 600; }
 .footer-separator { display: inline-block; margin: 0 9px; color: #9b6171; }
-.footer-inner { flex: 0 1 var(--footer-width); min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 18px; color: #737b75; font-size: 16px; line-height: 24px; }
+.footer-inner { flex: 0 1 var(--footer-width); min-width: 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; color: #737b75; font-size: 16px; line-height: 24px; }
 .footer-copyright { display: flex; align-items: center; flex-wrap: wrap; gap: 0 4px; margin: 0; }
 .footer-mark { flex: none; width: 20px; height: 20px; background: var(--accent-text); mask: url('/openai-blossom-coral.png') center / 172% no-repeat; }
 .footer-links { display: flex; align-items: center; flex: none; gap: 10px; }
 .footer-links button { min-height: 24px; background: transparent; border: 0; padding: 0; color: #8a938c; transition: color 180ms ease; }
 .footer-links button:hover { color: #d7ded8; }
+.footer-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px 20px; }
+.footer-author { display: flex; align-items: center; gap: 7px; padding-left: 18px; border-left: 1px solid var(--line); color: #8a938c; font-size: 14px; white-space: nowrap; }
+.footer-profile { display: inline-flex; align-items: center; gap: 7px; min-height: 24px; }
+.footer-profile .icon { width: 16px; height: 16px; fill: currentColor; stroke: none; }
+.footer-profile:hover { color: var(--accent-text); }
 .curtain {
   position: fixed;
   z-index: 0;
@@ -545,6 +550,7 @@ dialog p { color: #d0c2cd; font-size: 14px; }
   .runtime-indicator { font-size: 10px; gap: 5px; }
   .runtime-indicator::before { width: 5px; height: 5px; }
   .header-link { display: none; }
+  .footer-author { padding-left: 0; border-left: 0; }
   .mobile-menu, .close-sidebar { display: inline-flex !important; }
   .mobile-menu { width: 36px; height: 36px; background: transparent; }
   .layout { display: block; min-height: 0; }
@@ -573,7 +579,7 @@ dialog p { color: #d0c2cd; font-size: 14px; }
 
 @media (max-width: 520px) {
   .keyboard-hint { display: none; }
-  .effort-picker { margin-inline-end: auto; }
+  .voice-button, .workspace[data-view="voice"] .effort-picker { margin-inline-end: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

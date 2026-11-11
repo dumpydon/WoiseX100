@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 4173",
     "check": "for file in src/*.js; do node --check \"$file\" || exit; done",
+    "test": "node --test tests/*.test.js",
+    "profile:prepare": "node scripts/prepare-profile.mjs",
     "deploy": "cf deploy"
   },
   "devDependencies": {
