@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createProfileBindings, extractRuntimeProfile, loadInterviewProfile, MAX_PROFILE_BYTES, PROFILE_PART_BYTES } from '../src/profile.js';
 import worker from '../src/request-handler.js';
+import { MAX_QUESTION_CHARACTERS } from '../src/message-limits.js';
 
 test('profile parts round-trip Unicode and material beyond the old 8,000-character cutoff', async () => {
   const profile = 'Evidence 🧠 — café.\n'.repeat(800) + 'The final fact must survive.';
@@ -11,6 +12,29 @@ test('profile parts round-trip Unicode and material beyond the old 8,000-charact
     if (name !== 'INTERVIEW_PROFILE_MANIFEST') assert.ok(new TextEncoder().encode(value).length <= PROFILE_PART_BYTES);
   }
   assert.equal(await loadInterviewProfile(bindings), profile);
+});
+
+test('complete long spoken turns pass through without truncation; over-limit messages stop before inference', async () => {
+  const originalFetch = globalThis.fetch;
+  const text = 'क'.repeat(MAX_QUESTION_CHARACTERS);
+  const messages = [
+    { role: 'user', content: text }, { role: 'assistant', content: 'First reply.' },
+    { role: 'user', content: text }, { role: 'assistant', content: 'Second reply.' },
+    { role: 'user', content: text }, { role: 'assistant', content: 'Third reply.' },
+    { role: 'user', content: text },
+  ];
+  let calls = 0;
+  const env = { INTERVIEW_PROFILE: 'Synthetic test profile.', OPENAI_API_KEY: 'test-only-no-network', REPLY_LIMIT: { limit: async () => ({ success: true }) } };
+  const request = value => new Request('https://woise.test/api/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ effort: 'high', messages: value }) });
+  try {
+    globalThis.fetch = async (_url, options) => {
+      calls += 1; assert.deepEqual(JSON.parse(options.body).input, messages);
+      return Response.json({ status: 'completed', output: [{ type: 'message', content: [{ type: 'output_text', text: 'Complete input received.' }] }] });
+    };
+    assert.equal((await worker.fetch(request(messages), env)).status, 200);
+    assert.equal((await worker.fetch(request([{ role: 'user', content: text + 'x' }]), env)).status, 400);
+    assert.equal(calls, 1);
+  } finally { globalThis.fetch = originalFetch; }
 });
 
 test('partial and mixed profile revisions fail instead of returning partial biographies', async () => {

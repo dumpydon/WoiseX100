@@ -21,6 +21,9 @@
     <symbol id="i-bolt" viewBox="0 0 24 24"><path d="m13 2-8 12h6l-1 8 9-12h-6l1-8Z"/></symbol>
     <symbol id="i-wave" viewBox="0 0 24 24"><path d="M3 10v4m4-7v10m5-14v18m5-14v10m4-7v4"/></symbol>
     <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11v1a7 7 0 0 0 14 0v-1m-7 8v3m-3 0h6"/></symbol>
+    <symbol id="i-mic-off" viewBox="0 0 24 24"><path d="m3 3 18 18M9 9v3a3 3 0 0 0 5.1 2.1M9 4.6A3 3 0 0 1 15 6v3m4 2v1a7 7 0 0 1-.8 3.2M5 11v1a7 7 0 0 0 10.8 5.9M12 19v3m-3 0h6"/></symbol>
+    <symbol id="i-mic-wait" viewBox="0 0 24 24"><rect x="7" y="2" width="6" height="12" rx="3"/><path d="M3 10v1a7 7 0 0 0 8 7m-1 0v4m-3 0h5"/><circle cx="18" cy="17" r="4"/><path d="M18 15v2l1.5 1"/></symbol>
+    <symbol id="i-mic-error" viewBox="0 0 24 24"><path d="M8 4a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0V4Zm-4 6v1a7 7 0 0 0 9 6.7M11 18v4m-3 0h6M20 4v7m0 3v.1"/></symbol>
     <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M10 5v14"/></symbol>
@@ -94,11 +97,15 @@
 
           <section class="voice-stage" id="voice-stage" aria-labelledby="voice-heading" data-state="ready" hidden>
             <h1 id="voice-heading" class="eyebrow"><svg class="icon"><use href="#i-wave"/></svg> Voice mode</h1>
-            <div class="orb-frame" aria-hidden="true">
+            <button type="button" id="orb-control" class="orb-frame" aria-label="Resume listening" aria-pressed="false" aria-describedby="voice-hint">
               <svg class="orb-geometry" width="0" height="0" focusable="false"><defs><clipPath id="orb-clip" clipPathUnits="objectBoundingBox"><path id="orb-contour" d="M .5 .02 C .765 .02 .98 .235 .98 .5 S .765 .98 .5 .98 .02 .765 .02 .5 .235 .02 .5 .02 Z"/></clipPath></defs></svg>
-              <span class="orb-motion"><span class="orb-halo"></span><span class="orb-activation"><span class="orb"><span class="orb-region orb-region-cream"></span><span class="orb-region orb-region-coral"></span><span class="orb-region orb-region-blush"></span><span class="orb-region orb-region-light"></span></span></span></span>
-            </div>
-            <p id="voice-status" class="voice-status" role="status">Opening the microphone…</p>
+              <span class="orb-motion" aria-hidden="true"><span class="orb-halo"></span><span class="orb-activation"><span class="orb"><span class="orb-region orb-region-cream"></span><span class="orb-region orb-region-coral"></span><span class="orb-region orb-region-blush"></span><span class="orb-region orb-region-light"></span></span></span></span>
+              <span class="orb-pause-ripple" aria-hidden="true"></span>
+              <span class="orb-badge" aria-hidden="true"><svg class="icon"><use href="#i-mic-off"/></svg></span>
+              <span class="orb-tooltip" aria-hidden="true">Resume listening</span>
+            </button>
+            <p id="voice-status" class="voice-status">Opening the microphone…</p>
+            <p id="microphone-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
             <p id="voice-hint" class="voice-hint">Allow microphone access if your browser asks.</p>
             <div class="speech-settings console-speech-settings" data-speech-settings>
               <label class="sr-only" for="console-playback">Voice playback provider</label>
@@ -128,7 +135,7 @@
           <div class="composer-area">
             <form id="composer" class="composer" autocomplete="off">
               <label for="question" class="sr-only">Your question</label>
-              <textarea id="question" placeholder="Ask a question…" rows="1" maxlength="1000" spellcheck="true"></textarea>
+              <textarea id="question" placeholder="Ask a question…" rows="1" maxlength="8000" spellcheck="true"></textarea>
               <div class="composer-toolbar">
                 <span class="keyboard-hint"><kbd>↵</kbd> to send</span>
                 <button type="button" id="open-voice" class="voice-button" aria-controls="voice-stage"><svg class="icon"><use href="#i-wave"/></svg> Voice mode</button>

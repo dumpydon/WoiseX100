@@ -22,6 +22,37 @@
     document.body.append(controls);
     controls.querySelector('select').onchange = event => { test.scenario = event.target.value; test.overlapSent = false; };
     controls.querySelector('select').append(new Option('Embedded browser: blob URLs unavailable', 'blob-blocked'));
+    controls.querySelector('select').append(new Option('Reply waiting for manual completion', 'reply-pending'));
+    controls.style.flexWrap = 'wrap';
+    const volume = document.createElement('select'); volume.setAttribute('aria-label', 'Controlled microphone volume');
+    for (const [value, name] of [[0, 'Silence'], [.0035, 'Background noise'], [.012, 'Quiet speech'], [.036, 'Normal speech'], [.10, 'Strong speech']]) volume.append(new Option(name, String(value)));
+    test.volume = 0;
+    volume.onchange = () => {
+      test.volume = Number(volume.value);
+      const record = test.streams.at(-1);
+      record?.gain.gain.setTargetAtTime(test.volume, record.context.currentTime, .015);
+    };
+    controls.append(volume);
+    const resolveReply = document.createElement('button'); resolveReply.type = 'button'; resolveReply.textContent = 'Resolve reply';
+    resolveReply.onclick = () => test.resolveReply?.(); controls.append(resolveReply);
+    const phrase = document.createElement('input'); phrase.setAttribute('aria-label', 'Test spoken phrase'); phrase.value = 'Hello from the first word'; controls.append(phrase);
+    const gap = document.createElement('select'); gap.setAttribute('aria-label', 'Test speech pause');
+    for (const ms of [1000, 2500, 2900]) gap.append(new Option(`${ms} ms pause`, String(ms)));
+    controls.append(gap);
+    const sequence = document.createElement('button'); sequence.textContent = 'Speak two-part turn'; sequence.type = 'button'; controls.append(sequence);
+    sequence.onclick = () => {
+      test.sequence = { pause: Number(gap.value), began: performance.now() };
+      test.latest?.speak('This is my');
+      setTimeout(() => {
+        const record = test.streams.at(-1);
+        test.sequence.beforeContinuation = { at: performance.now(), mic: document.querySelector('#voice-stage').dataset.micState,
+          raw: record.stream.getTracks().map(track => track.readyState), processed: test.latest?.input?.readyState,
+          submissions: test.replyCalls.length };
+        test.latest?.speak('complete answer.');
+      }, 450 + Number(gap.value));
+    };
+    const endRecognition = document.createElement('button'); endRecognition.type = 'button'; endRecognition.textContent = 'End recognition session'; controls.append(endRecognition);
+    endRecognition.onclick = () => { if (test.latest) { test.latest.active = false; test.latest.onend?.(); } };
     const originalPlay = HTMLMediaElement.prototype.play;
     HTMLMediaElement.prototype.play = function (...args) {
       if (test.scenario === 'blob-blocked' && this.src.startsWith('blob:')) return Promise.reject(new DOMException('Controlled blob URL rejection', 'NotSupportedError'));
@@ -33,9 +64,10 @@
       return OriginalStart.apply(this, args);
     };
     class FakeRecognition {
-      constructor() { test.latest = this; this.active = false; }
+      constructor() { test.latest = this; this.active = false; this.results = []; }
       start(input) {
         if (!(input instanceof MediaStreamTrack)) throw new TypeError('A track is required');
+        this.input = input;
         test.starts += 1;
         this.active = true;
         setTimeout(() => {
@@ -47,8 +79,13 @@
         }, 80);
       }
       abort() { this.active = false; }
-      stop() { this.active = false; this.onend?.(); }
-      speak() {
+      stop() {
+        this.active = false;
+        for (const result of this.results) result.isFinal = true;
+        this.onresult?.({ resultIndex: 0, results: this.results.slice() });
+        this.onend?.();
+      }
+      speak(text = phrase.value) {
         if (!this.active) return;
         test.firstWordsAt = performance.now();
         this.onspeechstart?.();
@@ -57,12 +94,16 @@
           stream.gain.gain.setValueAtTime(.12, stream.context.currentTime);
           stream.gain.gain.setValueAtTime(0, stream.context.currentTime + .45);
         }
-        const partial = [{ transcript: 'Hello from the first word' }]; partial.isFinal = false;
-        this.onresult?.({ resultIndex: 0, results: [partial] });
+        const index = this.results.length;
+        const partial = [{ transcript: text }]; partial.isFinal = false;
+        this.results[index] = partial;
+        this.onresult?.({ resultIndex: index, results: this.results.slice() });
+        setTimeout(() => { if (this.active) { test.speechEndedAt = performance.now(); this.onspeechend?.(); } }, 450);
         setTimeout(() => {
           if (!this.active) return;
-          const final = [{ transcript: 'Hello from the first word' }]; final.isFinal = true;
-          this.onresult?.({ resultIndex: 0, results: [final] });
+          const final = [{ transcript: text }]; final.isFinal = true;
+          this.results[index] = final;
+          this.onresult?.({ resultIndex: index, results: this.results.slice() });
         }, 650);
       }
     }
@@ -70,7 +111,7 @@
     async function fakeStream() {
       const context = new AudioContext(); contexts.add(context); await context.resume();
       const oscillator = context.createOscillator(); oscillator.frequency.value = 175;
-      const gain = context.createGain(); gain.gain.value = 0;
+      const gain = context.createGain(); gain.gain.value = test.volume;
       const destination = context.createMediaStreamDestination();
       oscillator.connect(gain); gain.connect(destination); oscillator.start();
       const record = { context, gain, stream: destination.stream, oscillator };
@@ -78,14 +119,22 @@
       return destination.stream;
     }
     Object.defineProperty(navigator.mediaDevices, 'getUserMedia', { configurable: true, value: () => {
+      test.permissionCalls = (test.permissionCalls ?? 0) + 1;
       if (test.scenario === 'denied') return Promise.reject(new DOMException('Test denial', 'NotAllowedError'));
       if (test.scenario === 'pending') return new Promise(resolve => { test.pending = () => fakeStream().then(resolve); });
       return fakeStream();
     } });
     const normalFetch = window.fetch.bind(window);
-    test.speechCalls = [];
+    test.speechCalls = []; test.replyCalls = [];
     window.fetch = (input, options) => {
-      if (String(input).endsWith('/api/reply')) return Promise.resolve(Response.json({ text: 'Controlled playback test.' }));
+      if (String(input).endsWith('/api/reply')) {
+        test.replyCalls.push({ at: performance.now(), body: JSON.parse(options.body) });
+        if (test.scenario === 'reply-pending') return new Promise((resolve, reject) => {
+          test.resolveReply = () => resolve(Response.json({ text: 'Controlled playback test.' }));
+          options.signal?.addEventListener('abort', () => reject(new DOMException('Test reply cancelled', 'AbortError')), { once: true });
+        });
+        return Promise.resolve(Response.json({ text: 'Controlled playback test.' }));
+      }
       if (String(input).endsWith('/api/speech')) {
         test.speechCalls.push(JSON.parse(options.body));
         if (test.scenario === 'tts-error') return Promise.resolve(Response.json({ error: 'Controlled OpenAI speech failure.', code: 'generation_failed' }, { status: 503 }));
@@ -98,13 +147,19 @@
       const stage = document.querySelector('#voice-stage');
       if (test.states.at(-1) !== stage.dataset.state) test.states.push(stage.dataset.state);
       test.peakLevel = Math.max(test.peakLevel ?? 0, Number(stage.style.getPropertyValue('--mic-level')) || 0);
+      test.scaleSamples ??= [];
+      test.scaleSamples.push({ time: performance.now(), scale: Number(stage.style.getPropertyValue('--orb-scale')) || 1, mic: stage.dataset.micState });
+      if (test.scaleSamples.length > 900) test.scaleSamples.splice(0, test.scaleSamples.length - 900);
     }).observe(document.querySelector('#voice-stage'), { attributes: true, attributeFilter: ['data-state', 'style'] });
-    window.addEventListener('pagehide', () => {
-      for (const context of contexts) context.close();
+    test.restorePreferences = () => {
       for (const [key, value] of previousPreferences) {
         if (value === null) localStorage.removeItem(key);
         else localStorage.setItem(key, value);
       }
+    };
+    window.addEventListener('pagehide', () => {
+      for (const context of contexts) context.close();
+      test.restorePreferences();
     });
     await import('/src/app.js?controlled-voice-qa');
     test.checkFilters = async () => {

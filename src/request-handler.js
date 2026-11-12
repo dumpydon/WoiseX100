@@ -1,6 +1,7 @@
 import { buildInterviewInstructions } from './interview-instructions.js';
 import { loadInterviewProfile } from './profile.js';
 import { speechGateway } from './speech-gateway.js';
+import { MAX_QUESTION_CHARACTERS } from './message-limits.js';
 
 const lunaModel = 'gpt-6-luna';
 const solModel = 'gpt-6.1-sol';
@@ -12,7 +13,7 @@ const presets = {
   max: { model: solModel, effort: 'max', maxTokens: 8192 },
 };
 const availableEfforts = Object.keys(presets);
-const maxBodyBytes = 32 * 1024;
+const maxBodyBytes = 128 * 1024;
 const maxMessages = 7;
 const maxMessageLength = 1200;
 
@@ -56,7 +57,7 @@ function validMessages(messages) {
     && messages.length % 2 === 1
     && messages.every((message, index) => message?.role === (index % 2 === 0 ? 'user' : 'assistant')
       && typeof message.content === 'string'
-      && message.content.length <= maxMessageLength
+      && message.content.length <= (message.role === 'user' ? MAX_QUESTION_CHARACTERS : maxMessageLength)
       && message.content.trim());
 }
 

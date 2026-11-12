@@ -7,6 +7,7 @@ import { createVoiceOrb } from './voice-orb.js';
 import { createSpeechSettings } from './speech-settings.js';
 import { createSpeechPlayback } from './speech-playback.js';
 import { PREVIEW_TEXT } from './speech-config.js';
+import { MAX_QUESTION_CHARACTERS } from './message-limits.js';
 
 const $ = (selector) => document.querySelector(selector);
 const workspace = $('#interview');
@@ -20,6 +21,8 @@ const chatPanel = $('#chat-panel');
 const log = $('#chat-log');
 const voiceStage = $('#voice-stage');
 const listen = $('#listen');
+const orbControl = $('#orb-control');
+const microphoneStatus = $('#microphone-status');
 const voiceStatus = $('#voice-status');
 const voiceHint = $('#voice-hint');
 const interfaceSounds = $('#interface-sounds');
@@ -42,6 +45,9 @@ let activeReply = null;
 let history = [];
 let autoListen = false;
 let activationPulse = null;
+let microphoneError = null;
+let microphoneState = 'paused';
+let pauseRipple = null;
 const voiceOrb = createVoiceOrb(voiceStage);
 let soundStorage;
 try { soundStorage = window.localStorage; } catch { /* Keep the sound setting in memory. */ }
@@ -53,30 +59,34 @@ const voiceInput = createVoiceInput({
     if (!voiceMode) return;
     if (state === 'error' || state === 'idle') {
       autoListen = false;
-      activationPulse?.cancel();
-      activationPulse = null;
-      voiceOrb.setActivation(false);
-      voiceStage.style.setProperty('--mic-reactivity', '1');
+      clearActivation();
     }
+    microphoneError = state === 'error' ? hint : null;
     updateVoice(state, status, hint);
   },
   onActivation({ delay }) {
     if (!voiceMode) return;
     activationPulse?.cancel();
-    voiceOrb.setActivation(true);
-    voiceStage.style.setProperty('--mic-reactivity', '0');
-    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    voiceOrb.setActivation(true, delay);
     activationPulse = $('.orb-activation').animate?.([
-      { transform: 'scale(1)', filter: 'brightness(1)' },
-      { transform: reduce ? 'scale(1)' : 'scale(1.045)', filter: 'brightness(1.13)', offset: .42 },
-      { transform: 'scale(1)', filter: 'brightness(1)' },
+      { filter: 'brightness(1)' },
+      { filter: 'brightness(1.13)', offset: .42 },
+      { filter: 'brightness(1)' },
     ], { duration: 420, delay: delay * 1000, easing: 'ease-in-out' });
-    const finishPulse = () => { voiceStage.style.setProperty('--mic-reactivity', '1'); voiceOrb.setActivation(false); };
+    const finishPulse = () => voiceOrb.setActivation(false);
     if (activationPulse) activationPulse.onfinish = finishPulse;
     else finishPulse();
   },
-  onInterim(text) { if (voiceMode) voiceHint.textContent = text; },
-  onFinal: submitQuestion,
+  onInterim(text) {
+    if (!voiceMode) return;
+    questionInput.value = text; updateComposer();
+    if (text) voiceHint.textContent = text;
+  },
+  onFinal(text) {
+    const accepted = submitQuestion(text);
+    if (accepted) { questionInput.value = ''; updateComposer(); }
+    return accepted;
+  },
   onActivity: setMicLevel,
 });
 const speechSettings = createSpeechSettings({
@@ -193,20 +203,60 @@ function updateVoice(state, status, hint = '') {
   voiceOrb.setState(state);
   voiceStatus.textContent = status;
   voiceHint.textContent = hint;
-  const listening = state === 'listening' || state === 'starting';
-  const label = listening ? 'Stop listening' : 'Start listening';
-  listen.replaceChildren(icon(listening ? 'i-stop' : 'i-mic'));
-  listen.setAttribute('aria-label', label);
-  listen.title = label;
-  listen.disabled = state === 'thinking' || state === 'finishing';
+  renderMicrophoneControls();
+}
+
+function renderMicrophoneControls() {
+  const phase = voiceInput.phase;
+  const next = microphoneError ? 'error' : phase === 'starting' ? 'connecting'
+    : phase === 'listening' ? 'listening' : autoListen ? 'waiting' : 'paused';
+  const label = next === 'connecting' ? 'Opening microphone…' : next === 'error' ? 'Retry microphone'
+    : autoListen ? 'Pause listening' : 'Resume listening';
+  const symbol = next === 'error' ? 'i-mic-error' : next === 'paused' ? 'i-mic-off'
+    : next === 'waiting' ? 'i-mic-wait' : 'i-mic';
+  for (const button of [listen, orbControl]) {
+    button.setAttribute('aria-label', label);
+    button.setAttribute('aria-pressed', String(next === 'listening'));
+    button.setAttribute('aria-disabled', String(next === 'connecting'));
+    button.setAttribute('aria-busy', String(next === 'connecting'));
+    if (button === listen) button.title = label;
+  }
+  listen.replaceChildren(icon(symbol));
+  orbControl.querySelector('.orb-badge').replaceChildren(icon(symbol));
+  orbControl.querySelector('.orb-tooltip').textContent = label;
+  voiceStage.dataset.micState = next;
+  voiceOrb.setMicrophoneState(next);
+  if (next !== microphoneState) {
+    pauseRipple?.cancel();
+    if (next === 'paused' && voiceMode && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      pauseRipple = $('.orb-pause-ripple').animate?.([
+        { transform: 'scale(.94)', opacity: .5 },
+        { transform: 'scale(1.16)', opacity: 0 },
+      ], { duration: 540, easing: 'cubic-bezier(.2,.6,.3,1)' });
+    }
+    microphoneState = next;
+  }
+  const activityNotice = voiceStatus.textContent.replace(/[.…]+$/u, '');
+  const notice = next === 'listening' ? 'Listening. Tap the orb to pause.'
+    : next === 'connecting' ? 'Opening the microphone. Please wait.'
+      : next === 'error' ? `Microphone unavailable. ${microphoneError}`
+        : next === 'waiting' ? `${voiceStatus.textContent} Microphone will resume after the reply.`
+          : `${speech || activeReply ? activityNotice + '. ' : ''}Listening paused. Tap the orb to resume.`;
+  if (microphoneStatus.textContent !== notice) microphoneStatus.textContent = notice;
+}
+
+function clearActivation() {
+  activationPulse?.cancel(); activationPulse = null;
+  voiceOrb.setActivation(false);
 }
 
 function readyVoice(hint) {
-  if (voiceMode && autoListen && activeReply === null) {
-    voiceInput.start();
+  if (voiceMode && autoListen && activeReply === null && !speech) {
+    voiceInput.start({ draft: questionInput.value });
     return;
   }
-  updateVoice('ready', 'Microphone off', hint ?? 'Tap the mic to resume, or type below.');
+  if (speech || activeReply) { renderMicrophoneControls(); return; }
+  updateVoice('ready', 'Listening paused', hint ?? 'Tap the orb or mic to resume, or type below.');
 }
 
 function showVoice(open, restoreFocus = true) {
@@ -215,6 +265,7 @@ function showVoice(open, restoreFocus = true) {
   if (open) voiceOrb.setState(activeReply ? 'thinking' : 'starting');
   if (open) {
     autoListen = true;
+    microphoneError = null;
     void voiceAudio.prepare();
     if (activeReply === null) { stopSpeech(); readyVoice(); }
     else updateVoice('thinking', 'Preparing a reply…', 'Your question is in the transcript.');
@@ -222,10 +273,11 @@ function showVoice(open, restoreFocus = true) {
     autoListen = false;
     cancelListening();
     stopSpeech();
-    activationPulse?.cancel();
-    activationPulse = null;
+    clearActivation();
+    pauseRipple?.cancel();
     voiceAudio.suspend();
   }
+  renderMicrophoneControls();
   renderView();
   if (open) {
     voiceStage.scrollIntoView({ block: 'nearest' });
@@ -264,11 +316,11 @@ function speechFailure(job, error) {
   }
   const message = document.createElement('p'); message.textContent = error.message;
   const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = 'Retry audio';
-  retry.addEventListener('click', () => { feedback.hidden = true; autoListen = voiceMode; speak(job.text, job.button, job.preview); });
+  retry.addEventListener('click', () => { feedback.hidden = true; speak(job.text, job.button, job.preview); });
   feedback.replaceChildren(message, retry);
   if (job.settings.provider === 'openai') {
     const device = document.createElement('button'); device.type = 'button'; device.textContent = 'Use Device Voice';
-    device.addEventListener('click', () => { speechSettings.useDevice(); autoListen = voiceMode; speak(job.text, job.button, job.preview); });
+    device.addEventListener('click', () => { speechSettings.useDevice(); speak(job.text, job.button, job.preview); });
     feedback.append(device);
   }
   feedback.hidden = false;
@@ -336,8 +388,13 @@ function appendMessage(author, text, mode) {
 }
 
 function submitQuestion(value) {
-  const text = value.trim().slice(0, 1000);
+  const text = value.trim();
   if (!text || activeReply !== null) return false;
+  if (text.length > MAX_QUESTION_CHARACTERS) {
+    autoListen = false; cancelListening(true);
+    updateVoice('ready', 'Your full draft is kept below', `Please shorten this message to ${MAX_QUESTION_CHARACTERS.toLocaleString()} characters before sending.`);
+    return false;
+  }
 
   cancelListening();
   stopSpeech();
@@ -432,16 +489,24 @@ function resetConversation() {
   if (!smallScreen.matches) questionInput.focus({ preventScroll: true });
 }
 
-function cancelListening() {
-  voiceInput.cancel();
+function cancelListening(preserveDraft = false) {
+  if (preserveDraft) voiceInput.pause();
+  else voiceInput.cancel();
+  clearActivation();
   setMicLevel(0);
 }
 
-function listenOnce() {
-  if (voiceInput.active) { autoListen = false; voiceInput.finish(); return; }
-  autoListen = true;
-  stopSpeech();
-  voiceInput.start();
+function toggleListening() {
+  if (!voiceMode || microphoneState === 'connecting') return;
+  microphoneError = null;
+  if (autoListen || voiceInput.active) {
+    autoListen = false;
+    cancelListening(true);
+    readyVoice();
+  } else {
+    autoListen = true;
+    readyVoice();
+  }
 }
 
 form.addEventListener('submit', (event) => {
@@ -460,7 +525,8 @@ questionInput.addEventListener('keydown', (event) => {
 });
 $('#open-voice').addEventListener('click', () => showVoice(true));
 $('#end-voice').addEventListener('click', () => showVoice(false));
-listen.addEventListener('click', listenOnce);
+listen.addEventListener('click', toggleListening);
+orbControl.addEventListener('click', toggleListening);
 $('#new-conversation').addEventListener('click', resetConversation);
 menu.addEventListener('click', () => setSidebar(true));
 $('#close-sidebar').addEventListener('click', () => setSidebar(false));
@@ -470,6 +536,7 @@ window.addEventListener('pagehide', () => {
   activeReply?.controller.abort();
   autoListen = false;
   cancelListening();
+  pauseRipple?.cancel();
   stopSpeech();
   voiceAudio.dispose();
   voiceOrb.setActive(false);
@@ -496,6 +563,7 @@ interfaceSounds.addEventListener('click', () => {
 });
 
 synthesis?.getVoices();
+questionInput.maxLength = MAX_QUESTION_CHARACTERS;
 renderSoundSetting();
 updateComposer();
 startMotion(workspace, form);

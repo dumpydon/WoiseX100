@@ -1,3 +1,5 @@
+import { createSpeechActivityDetector } from './voice-activity.js';
+
 export const CHIME_DURATION = 0.4;
 export const CHIME_FREQUENCIES = [392, 523.251];
 export const CHIME_FILTER_FREQUENCIES = CHIME_FREQUENCIES.flatMap(frequency => [frequency, frequency * 2]);
@@ -70,7 +72,7 @@ export function createVoiceAudio({
     } catch { return Promise.resolve(false); }
   }
 
-  function attachMicrophone(stream) {
+  function attachMicrophone(stream, { onSpeechActivity = () => {} } = {}) {
     if (!context || context.state !== 'running') return null;
     const source = context.createMediaStreamSource(stream);
     const dry = context.createGain();
@@ -96,10 +98,12 @@ export function createVoiceAudio({
     bus.connect(analyser);
     analyser.fftSize = 512;
     const data = new Float32Array(analyser.fftSize);
+    const detector = createSpeechActivityDetector();
     let frame = null;
-    let smoothed = 0;
+    let noiseFloor = .0025;
     let disposed = false;
     const graph = {
+      hasSpeechActivity: true,
       track: destination.stream.getAudioTracks()[0],
       protectChime(start, end) {
         // Crossfade narrow note filters into the mic path; never mute or time-gate the user's speech.
@@ -117,9 +121,13 @@ export function createVoiceAudio({
           if (disposed) return;
           analyser.getFloatTimeDomainData(data);
           const rms = Math.sqrt(data.reduce((sum, value) => sum + value * value, 0) / data.length);
-          const level = Math.min(1, Math.max(0, (rms - 0.006) / 0.075));
-          smoothed += (level - smoothed) * (level > smoothed ? 0.5 : 0.18);
-          onLevel(smoothed);
+          // Learn only low ambient levels, never train the noise floor on ordinary speech.
+          if (rms < noiseFloor * 1.7 + .0015) noiseFloor += (Math.min(.008, rms) - noiseFloor) * .008;
+          const gate = Math.max(.0035, noiseFloor * 1.6);
+          const level = Math.min(1, Math.max(0, (rms - gate) / .075));
+          // The orb owns the attack/release envelope; avoid stacking another slow release here.
+          onLevel(level);
+          onSpeechActivity(detector.measure(data, context.sampleRate, rms, gate, context.currentTime * 1000));
           frame = requestFrame(tick);
         };
         frame = requestFrame(tick);
